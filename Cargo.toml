@@ -1,0 +1,21 @@
+[workspace]
+members = [
+    "library/core",
+    "library/alloc",
+    "library/std",
+    "library/collections",
+    "compiler/aer_lexer",
+    "compiler/aer_parser",
+    "compiler/aer_tycheck",
+    "compiler/aer_borrowck",
+    "compiler/aer_codegen",
+    "compiler/aer_driver",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Douglas Kitagawa", "ÆR Contributors"]
+license = "MIT OR Apache-2.0"
+authors = ["The ÆR Project Contributors"]
