@@ -1,0 +1,9 @@
+[package]
+name    = "aer_borrowck"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+aer_lexer   = { path = "../aer_lexer" }
+aer_parser  = { path = "../aer_parser" }
+aer_tycheck = { path = "../aer_tycheck" }
