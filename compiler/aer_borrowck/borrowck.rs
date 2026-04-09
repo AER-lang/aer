@@ -276,4 +276,202 @@ impl<'a> BorrowChecker<'a> {
             StatementKind::StorageLive(_) | StatementKind::Nop => {}
         }
     }
+
+    // ── Rvalue checking ───────────────────────────────────────────────────────
+
+    fn check_rvalue(
+            &mut self,
+            rv: &Rvalue,
+            active: &[&Loan],
+            state: &mut MoveState,
+            span: Span,
+        ) {
+            match rv {
+                Rvalue::Use(op) => {
+                    self.check_operand_move(op, active, state, span);
+                }
+                Rvalue::Ref(place) => {
+                    // Shared borrow - check no exclusive loan is active on a conflicting place.
+                    self.check_use_of_place(place, state, span);
+                    for loan in active {
+                        if loan.kind == BorrowKind::Exclusive && self.places_conflict(place, &loan, place) {
+                            self.errors.push(BorrowError::new(
+                                span,
+                                BorrowErrorKind::ConflictingBorrow {
+                                    place: place.to_string(),
+                                    existing_kind: loan.kind,
+                                    existing_span: loan.span,
+                                    new_kind: BorrowKind::Shared,
+                                },
+                            ));
+                        }
+                    }
+                }
+                RValue::RefMut(place) => {
+                    // Exclusive borrow - check the place is mutable and no other loan is active.
+                    self.check_place_mutability(place, span);
+                    self.check_use_of_place(place, state, span);
+                    for loan in active {
+                        if self.places_conflict(place, &loan.place) {
+                            self.errors.push(BorrowError::new(
+                                span,
+                                BorrowErrorKind::ConflictingBorrow {
+                                    place: place.to_string(),
+                                    existing_kind: loan.kind,
+                                    existing_span: loan.span,
+                                    new_kind: BorrowKind::Exclusive,
+                                },
+                            ));
+                        }
+                    }
+                }
+                Rvalue::BinaryOp(_, a, b) => {
+                    self.check_operand_move(a, active, state, span);
+                    self.check_operand_move(b, active, state, span);
+                }
+                Rvalue::UnaryOp(_, a) => {
+                    self.check_operand_move(op, active, state, span);
+                }
+                Rvalue::Aggregate(_, ops) => {
+                    for op in ops {
+                        self.check_operand_move(op, active, state, span);
+                    }
+                }
+            }
+        }
+
+        fn check_operand_move(
+            &mut self,
+            op: &Operand,
+            active: &[&Loan],
+            state: &mut MoveState,
+            span: span
+        ) {
+            match op {
+                Operand::Move(place) => {
+                    // Check not moved already
+                    self.check_use_of_place(place, state, span);
+
+                    // Check no active loan is on a conflicting place
+                    for loan in active {
+                        if self.places_conflict(place, &loan.place) {
+                            self.errors.push(BorrowError::new(
+                                span,
+                                BorrowErrorKind::MoveWhileBorrowed {
+                                    name: place.to_string(),
+                                    borrow_span: loan.span,
+                                },
+                            ));
+                        }
+                    }
+
+                    // Mark as moved (for non-Copy types)
+                    // As this is currently a MVP we are treating all non-primitive locals as moved
+                    // on use
+                    // A Copy analysis pass would refine this
+                    if place.is_local() {
+                        let local = self.cfg.local(place.root);
+                        if !is_copy_type(local.ty) {
+                            state.mark_moved(place.root);
+                        }
+                    }
+                }
+                Operand::Const(_) => {}
+            }
+        }
+
+        fn check_use_of_place(&mut self, place: &Place, state: &MoveState, span: Span) {
+            if place.is_local() && state.is_moved(place.root) {
+                let name = self.cfg.local(place.root).name.clone();
+                // Only emit if the span is meaningful (not a compiler-generated tmp)
+                if !name.starts_with("_t") {
+                    self.errors.push(BorrowError::new(
+                        span,
+                        BorrowErrorKind::UseAfterMove {
+                            name,
+                            move_at: span, // Ideally the original move span
+                        },
+                    ));
+                }
+            }
+        }
+
+    // ── Terminator checking ───────────────────────────────────────────────────
+
+    fn check_terminator(
+            &mut self,
+            term: &crate::cfg::Terminator,
+            active: &[&Loan],
+            state: &mut MoveState,
+        ) {
+            match &term.kind {
+                TerminatorKind::Return => {
+                    let ret = Place::local(LocalId::RETURN);
+                    self.check_use_of_place(&ret, state, term.span);
+                }
+                TerminatorKind::Call { func, args, .. } => {
+                    self.check_operand_move(func, active, state, term.span);
+                    for arg in args {
+                        self.check_operand_move(arg, active, state, term.span);
+                    }
+                }
+                TerminatorKind::SwitchInt { discriminant, .. } => {
+                    self.check_operand_move(discriminant, active, state, term.span);
+                }
+                TerminatorKind::DropAndGoto { place, .. } => {
+                    for loan in active {
+                        if self.places_conflict(place, &loan.place) {
+                            self.errors.push(BorrowError::new(
+                                term.span,
+                                BorrowErrorKind::MoveWhileBorrowed {
+                                    name: place.to_string(),
+                                    borrow_span: loan.span,
+                                },
+                            ));
+                        }
+                    }
+                    if place.is_local() {
+                        state.mark_moved(place.root);
+                    }
+                }
+                TerminatorKind::Goto(_) | TerminatorKind::Unreachable => {}
+            }
+        }
+
+    // ── Mutability checking ───────────────────────────────────────────────────
+
+    fn check_place_mutability(&mut self, place: &Place, span: Span) {
+            let local = self.cfg.local(place.root);
+            if !local.mutable && !local.is_param {
+                // Params are not mutable by default but that's a distinct error.
+                // Only emit for explicit immutable lets
+                if !local.name.starts_with("_t") {
+                    self.errors.push(BorrowError::new(
+                        span,
+                        if matches!(place.proj.last(), None) {
+                            BorrowErrorKind::MutationOfImmutable { name: local.name.clone() }
+                        } else {
+                            BorrowErrorKind::RefMutOfImmutable { name: local.name.clone() }
+                        },
+                    ));
+                }
+            }
+        }
+
+    // ── Place conflict ────────────────────────────────────────────────────────
+
+    /// Two places conflict if one is a prefix of the other (i.e. they
+    /// potentially alias the same memory)
+    fn places_conflict(&self, a: &Place, b: &Place) -> bool {
+            a.has_prefix(b) || b.has_prefix(a)
+        }
+}
+
+// ── Copy type heuristic ───────────────────────────────────────────────────────
+
+/// Returns true for types that implement Copy - They don't need to be
+/// tracked for moves. In this MVP stage we use a conservative approximation:
+/// all primitive types are Copy
+fn is_copy_type(ty: aer_tycheck::TypeId) -> bool {
+        ty.is_integer() || ty.is_float() || ty == aer_tycheck::TypeId::BOOL
 }
