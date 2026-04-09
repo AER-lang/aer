@@ -62,4 +62,9 @@ impl<'tcx> CfgBuilder<'tcx> {
         self.cfg.push_stmt(self.current, Statement { kind, span });
     }
 
+    /// Start a new block and make it current (without setting a terminator on
+    /// the old block, the caller is responsible for that)
+    fn new_block(&mut self) -> BlockId {
+        self.cfg.new_block()
+    }
 }
