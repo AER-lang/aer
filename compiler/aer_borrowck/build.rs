@@ -67,4 +67,13 @@ impl<'tcx> CfgBuilder<'tcx> {
     fn new_block(&mut self) -> BlockId {
         self.cfg.new_block()
     }
+
+    /// Terminate the current block and switch to next
+    fn goto(&mut self, next: BlockId, span: Span) {
+        self.cfg.set_terminator(self.current, Terminator {
+            kind: TerminatorKind::Goto(next),
+            span,
+        });
+        self.current = next;
+    }
 }
