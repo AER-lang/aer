@@ -56,4 +56,10 @@ impl<'tcx> CfgBuilder<'tcx> {
         let name = format!("_t{}", self.tmp);
         self.cfg.declare_local(name, ty, false, span, false)
     }
+
+    /// Emit a statement into the current block
+    fn emit(&mut self, kind: StatementKind, span: Span) {
+        self.cfg.push_stmt(self.current, Statement { kind, span });
+    }
+
 }
