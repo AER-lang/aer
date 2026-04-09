@@ -47,4 +47,13 @@ impl<'tcx> CfgBuilder<'tcx> {
             tmp: 0,
         }
     }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /// Allocate fresh temporary local of the given type
+    fn fresh_tmp(&mut self, ty: TypeId, span: Span) -> LocalId {
+        self.tmp += 1;
+        let name = format!("_t{}", self.tmp);
+        self.cfg.declare_local(name, ty, false, span, false)
+    }
 }
