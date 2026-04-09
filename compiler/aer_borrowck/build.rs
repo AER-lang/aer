@@ -24,13 +24,27 @@ use crate::cfg::*;
 // ── Builder ───────────────────────────────────────────────────────────────────
 
 pub struct CfgBuilder<'tcx> {
-    cfg:    Cfg,
+    cfg:        Cfg,
     /// Thew block currently being filled
-    current: BlockId,
+    current:    BlockId,
     /// Type-check results, used to look up types of expressions
-    tcx:    &'tcx CheckResult,
+    tcx:        &'tcx CheckResult,
     /// Mapping from source-span starts to LocalIds, for resolving names
-    locals: std::collections::HashMap<String, LocalId>,
+    locals:     std::collections::HashMap<String, LocalId>,
     /// Temporary counter
-    tmp:    u32,
+    tmp:        u32,
+}
+
+impl<'tcx> CfgBuilder<'tcx> {
+    pub fn new(name: String, tcx: &'tcx CheckResult) -> Self {
+        let mut cfg = Cfg::new(name);
+        let entry = cfg.new_block();
+        Self {
+            cfg,
+            current: entry,
+            tcx,
+            locals: std::collections::HashMap::new(),
+            tmp: 0,
+        }
+    }
 }
