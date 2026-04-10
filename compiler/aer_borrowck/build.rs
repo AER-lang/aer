@@ -122,4 +122,13 @@ impl<'tcx> CfgBuilder<'tcx> {
 
         self.cfg
     }
+
+    // ── Block lowering ────────────────────────────────────────────────────────
+
+    fn lower_block(&mut self, block: &Block, span: Span) -> Option<Place> {
+        for stmt in &block.stmts {
+            self.lower_stmt(stmt);
+        }
+        block.tail.as_ref().map(|tail| self.lower_expr(tail))
+    }
 }
