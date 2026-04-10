@@ -131,4 +131,42 @@ impl<'tcx> CfgBuilder<'tcx> {
         }
         block.tail.as_ref().map(|tail| self.lower_expr(tail))
     }
+
+    // ── Statement lowering ────────────────────────────────────────────────────
+
+    fn lower_stmt(&mut self, stmt: &Stmt) {
+        match &stmt.kind {
+            StmtKind::Let { pat, ty: _, init } => {
+                let ty = self.tcx.expr_types
+                    .get(&stmt.span.start)
+                    .copied()
+                    .unwrap_or(TypeId::UNKNOWN);
+
+                let (name, mutable) = match &pat.kind {
+                    PatKind::Bind(i)    => (i.name.clone(), false),
+                    PatKind::BindMut(i) => (i.name.clone(), true),
+                    PatKind::Wildcard   => ("_".into(), false),
+                    _                   => ("_".into(), false),
+                };
+
+                let local_id = self.cfg.declare_local(&name, ty, mutable, stmt.span, false);
+                self.locals.insert(name.clone(), local_id);
+                self.emit(StatementKind::StorageLive(local_id), stmt.span);
+
+                if let Some(init_expr) = init {
+                    let rhs = self.lower_expr(init_expr);
+                    self.emit(
+                            StatementKind::Assign(Place::local(local_id), Rvalue::Use(Operand::Move(rhs))),
+                        stmt.span,
+                    );
+                }
+            }
+
+            StmtKind::ExprSemi(expr) => {
+                self.lower_expr(expr);
+            }
+
+            StmtKind::Item(_) => {} // Nested items not lowered in MVP
+        }
+    }
 }
