@@ -156,7 +156,7 @@ impl<'tcx> CfgBuilder<'tcx> {
                 if let Some(init_expr) = init {
                     let rhs = self.lower_expr(init_expr);
                     self.emit(
-                            StatementKind::Assign(Place::local(local_id), Rvalue::Use(Operand::Move(rhs))),
+                        StatementKind::Assign(Place::local(local_id), Rvalue::Use(Operand::Move(rhs))),
                         stmt.span,
                     );
                 }
