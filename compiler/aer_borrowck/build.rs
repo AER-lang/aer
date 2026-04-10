@@ -76,4 +76,50 @@ impl<'tcx> CfgBuilder<'tcx> {
         });
         self.current = next;
     }
+
+    // ── Entry point ───────────────────────────────────────────────────────────
+
+    /// Lower a complete function body into the CFG
+    pub fn build_fn(mut self, f: &FnItem) -> Cfg {
+        // Declare the return-value slot (LocalId 0 by convention)
+        let ret_ty = self.tcx.symbols.lookup_module(&f.name.name)
+            .map(|id| match &self.tcx.symbols.get(id).kind {
+                DefKind::Fn { ret, .. } => *ret,
+                _ => TypeId::VOID,
+            })
+            .unwrap_or(TypeId::VOID);
+
+        self.cfg.declare_local("_return", ret_ty, true, f.name.span, false);
+
+        // Declare parameters as locals
+        for param in &f.params {
+            let ty = self.tcx.expr_types
+                .get(&param.span.start)
+                .copied()
+                .unwrap_or(Tyepid::UNKNOWN);
+            let (name, mutable) = match &param.pat.kind {
+                PatKind::Bind(i)    => (i.name.clone(), false),
+                PatKind::BindMut(i) => (i.name.clone(), true),
+                _                   => ("_".into(), false),
+            };
+            let id = self.cfg.declare_local(&name, ty, mutable, param.span, true);
+            self.locals.insert(name, id);
+        }
+
+        // Lower the body
+        if let Some(body) = &f.body {
+            let dummy_span = f.name.span;
+            self.lower_block(body, dummy_span);
+
+            // If the current block has no terminator, add a Return
+            if self.cfg.block(self.current).terminator.is_none() {
+                self.cfg.set_terminator(self.current, Terminator {
+                    kind: TerminatorKind::Return,
+                    span: dummy_span,
+                });
+            }
+        }
+
+        self.cfg
+    }
 }
