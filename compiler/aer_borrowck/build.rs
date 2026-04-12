@@ -219,7 +219,8 @@ impl<'tcx> CfgBuilder<'tcx> {
             ExprKind::Ref(inner) => {
                 let place = self.lower_expr(inner);
                 let tmp = self.fresh_tmp(ty, span);
-                self.emit(StatementKind::Assign(Place::local(tmp), Rvalue::Ref(place)),
+                self.emit(
+                    StatementKind::Assign(Place::local(tmp), Rvalue::Ref(place)),
                 span,
                 );
                 Place::local(tmp)
