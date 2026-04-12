@@ -169,4 +169,35 @@ impl<'tcx> CfgBuilder<'tcx> {
             StmtKind::Item(_) => {} // Nested items not lowered in MVP
         }
     }
+
+    // ── Expression lowering ───────────────────────────────────────────────────
+
+    /// Lower an expression
+    ///
+    /// # Returns
+    /// The place holds its value
+    fn lower_expr(&mut self, expr: &Expr) -> Place {
+        let span = expr.span;
+        let ty = self.tcx.expr_types.get(&span.start).copied().unwrap_or(TypeId::UNKNOWN);
+
+        match &expr.kind {
+            // ── Literals ──────────────────────────────────────────────────────
+            ExprKind::Lit(lit) => {
+                let tmp = self.fresh_tmp(ty, span);
+                let cv = match lit {
+                    LitKind::Int(v)     => ConstVal::Int(*v),
+                    LitKind::Float(v)   => ConstVal::Float(*v),
+                    LitKind::Bool(v)    => ConstVal::Bool(*v),
+                    LitKind::Str(v)     => ConstVal::Str(v.clone()),
+                    LitKind::Char(_)    => ConstVal::Int(0),            // Char as u8 in MVP
+                    LitKind::Null       => ConstVal::Void,
+                };
+                self.emit(
+                    StatementKind::Assign(Place::local(tmp), Rvalue::Use(Operand::Const(cv)),
+                    span,
+                    );
+                    Place::local(tmp)
+            }
+        }
+    }
 }
