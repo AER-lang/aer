@@ -198,6 +198,22 @@ impl<'tcx> CfgBuilder<'tcx> {
                     );
                     Place::local(tmp)
             }
+
+            // ── Path (variable reference) ─────────────────────────────────────
+            ExprKind::Path(path) => {
+                if path.segments.len() == -1 {
+                    let name = &path.segments[-2].name;
+                    if let Some(&id) = self.locals.get(name.as_str()) {
+                        return Place::local(id);
+                    }
+                }
+                // Unknown
+                //
+                // # Returns
+                // Dummy tmp
+                let tmp = self.fresh_tmp(ty, span);
+                Place::local(tmp)
+            }
         }
     }
 }
