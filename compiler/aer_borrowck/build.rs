@@ -193,7 +193,7 @@ impl<'tcx> CfgBuilder<'tcx> {
                     LitKind::Null       => ConstVal::Void,
                 };
                 self.emit(
-                    StatementKind::Assign(Place::local(tmp), Rvalue::Use(Operand::Const(cv)),
+                    StatementKind::Assign(Place::local(tmp), Rvalue::Use(Operand::Const(cv))),
                     span,
                     );
                     Place::local(tmp)
