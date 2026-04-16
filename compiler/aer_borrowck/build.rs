@@ -441,6 +441,30 @@ impl<'tcx> CfgBuilder<'tcx> {
                 let tmp = self.fresh_tmp(TypeId::VOID, span);
                 Place::local(tmp)
             }
+
+            // ── return ────────────────────────────────────────────────────────
+            ExprKind::Return(val) => {
+                if let Some(v) = val {
+                    let p = self.lower_expr(v);
+                    self.emit(
+                        StatementKind::Assign(
+                            Place::local(LocalId::RETURN),
+                            Rvalue::Use(Operand::Move(p)),
+                        ),
+                        span,
+                    );
+                }
+                let cur = self.current;
+                self.cfg.set_terminator(cur, Terminator {
+                    kind: TerminatorKind::Return,
+                    span,
+                });
+
+                // Start a new (unreachable) block so we can continue building
+                self.current = self.new_block();
+                let tmp = self.fresh_tmp(TypeId::NORETURN, span);
+                Place::local(tmp)
+            }
         }
     }
 }
