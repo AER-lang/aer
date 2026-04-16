@@ -270,6 +270,18 @@ impl<'tcx> CfgBuilder<'tcx> {
                 );
                 Place::local(tmp)
             }
+
+            // ── Assignment ────────────────────────────────────────────────────
+            ExprKind::Assign { lhs, op: _, rhs } => {
+                let lhs_p = self.lower_expr_as_place(lhs);
+                let rhs_p = self.lower_expr(rhs);
+                self.emit(
+                    StatementKind::Assign(lhs_p, Rvalue::Use(Operand::Move(rhs_p))),
+                    span,
+                );
+                let tmp = self.fresh_tmp(TypeId::VOID, span);
+                Place::local(tmp)
+            }
         }
     }
 }
