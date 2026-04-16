@@ -395,6 +395,52 @@ impl<'tcx> CfgBuilder<'tcx> {
                 let tmp = self.fresh_tmp(ty, span);
                 Place::local(tmp)
             }
+
+            // ── for ───────────────────────────────────────────────────────────
+            ExprKind::For { pat, iter, body } => {
+                // Lower the iterator expression
+                let _iter_p = self.lower_expr(iter);
+
+                // Declare the loop variable.
+                let (var_name, mutable) = match &pat.kind {
+                    PatKind::Bind(i)    => (i.name.clone(), false),
+                    PatKind::BindMut(i) => (i.name.clone(), true),
+                    _                   => ("_".into(), false),
+                };
+                let elem_ty = TypeId::UNKNOWN; // Resolved by type checker
+                let var_id  = self.cfg.declare_local(&var_name, elem_ty, mutable, span, false);
+                self.locals.insert(var_name.clone(), var_id);
+
+                let header  = self.new_block();
+                let body_bb = self.new_block();
+                let exit_bb = self.new_block();
+
+                self.goto(header, span);
+                self.current = header;
+                // Simplified: Unconditionally enter body (real impl checks iterator)
+                self.cfg.set_terminator(self.current, Terminator {
+                    kind: TerminatorKind::SwitchInt {
+                        discriminant: Operand::Const(ConstVal::Bool(true)),
+                        targets: vec![(1, body_bb)],
+                        otherwise: exit_bb,
+                    },
+                    span,
+                });
+
+                self.current = body_bb;
+                self.lower_block(body, span);
+                if self.cfg.block(self.current).terminator.is_none() {
+                    let cur = self.current;
+                    self.cfg.set_terminator(cur, Terminator {
+                        kind: TerminatorKind::Goto(header),
+                        span,
+                    });
+                }
+
+                self.current = exit_bb;
+                let tmp = self.fresh_tmp(TypeId::VOID, span);
+                Place::local(tmp)
+            }
         }
     }
 }
