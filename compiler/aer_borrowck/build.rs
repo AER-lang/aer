@@ -373,6 +373,28 @@ impl<'tcx> CfgBuilder<'tcx> {
                 let tmp = self.fresh_tmp(TypeId::VOID, span);
                 Place::local(tmp)
             }
+
+            // ── loop ──────────────────────────────────────────────────────────
+            ExprKind::Loop(body) => {
+                let header = self.new_block();
+                let exit_bb = self.new_block();
+
+                self.goto(header, span);
+                self.current = header;
+                self.lower_block(body, span);
+
+                if self.cfg.block(self.current).terminator.is_none() {
+                    let cur = self.current;
+                    self.cfg.set_terminator(cur, Terminator {
+                        kind: TerminatorKind::Goto(header),
+                        span,
+                    });
+                }
+
+                self.current = exit_bb;
+                let tmp = self.fresh_tmp(ty, span);
+                Place::local(tmp)
+            }
         }
     }
 }
