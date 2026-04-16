@@ -251,6 +251,25 @@ impl<'tcx> CfgBuilder<'tcx> {
                 );
                 Place::local(tmp)
             }
+
+            // ── Unary op ──────────────────────────────────────────────────────
+            ExprKind::Unary { op, expr: inner } => {
+                let inner_p = self.lower_expr(inner);
+                let mir_op = match op {
+                    aer_parser::ast::UnOp::Neg   => UnOp::Neg,
+                    aer_parser::ast::UnOp::Not   => UnOp::Not,
+                    aer_parser::ast::UnOp::Deref => UnOp::Deref,
+                };
+                let tmp = self.fresh_tmp(ty, span);
+                self.emit(
+                    StatementKind::Assign(
+                        Place::local(tmp),
+                        Rvalue::UnaryOp(mir_op, Operand::Move(inner_p)),
+                    ),
+                    span,
+                );
+                Place::local(tmp)
+            }
         }
     }
 }
