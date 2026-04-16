@@ -337,6 +337,42 @@ impl<'tcx> CfgBuilder<'tcx> {
                 }
                 Place::local(result)
             }
+
+            // ── while ─────────────────────────────────────────────────────────
+            ExprKind::While { cond, body } => {
+                let header = self.new_block();
+                let body_bb = self.new_block();
+                let exit_bb = self.new_block();
+
+                self.goto(header, span);
+
+                // Header: evaluate condition
+                self.current = header;
+                let cond_p = self.lower_expr(cond);
+                self.cfg.set_terminator(self.current, Terminator {
+                    kind: TerminatorKind::SwitchInt {
+                        discriminant: Operand::Move(cond_p),
+                        targets: vec![(1, body_bb)],
+                        otherwise: exit_bb,
+                    },
+                    span,
+                });
+
+                // Body
+                self.current = body_bb;
+                self.lower_block(body, span);
+                if self.cfg.block(self.current).terminator.is_none() {
+                    let cur = self.current;
+                    self.cfg.set_terminator(cur, Terminator {
+                        kind: TerminatorKind::Goto(header),
+                        span,
+                    });
+                }
+
+                self.current = exit_bb;
+                let tmp = self.fresh_tmp(TypeId::VOID, span);
+                Place::local(tmp)
+            }
         }
     }
 }
