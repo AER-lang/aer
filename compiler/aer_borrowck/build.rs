@@ -465,6 +465,21 @@ impl<'tcx> CfgBuilder<'tcx> {
                 let tmp = self.fresh_tmp(TypeId::NORETURN, span);
                 Place::local(tmp)
             }
+
+            // ── break / continue ──────────────────────────────────────────────
+            ExprKind::Break(_) | ExprKind::Continue => {
+                // In a full compiler we'd patch the target block; for the MVP
+                // we emit a Goto to a dummy block
+                let dummy = self.new_block();
+                let cur = self.current;
+                self.cfg.set_terminator(cur, Terminator {
+                    kind: TerminatorKind::Goto(dummy),
+                    span,
+                });
+                self.current = dummy;
+                let tmp = self.fresh_tmp(TypeId::NORETURN, span);
+                Place::local(tmp)
+            }
         }
     }
 }
