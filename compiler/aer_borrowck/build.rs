@@ -502,6 +502,51 @@ impl<'tcx> CfgBuilder<'tcx> {
                 self.current = next_bb;
                 Place::local(result)
             }
+
+            // ── field access ──────────────────────────────────────────────────
+            ExprKind::Field { expr: recv, field } => {
+                let recv_p = self.lower_expr(recv);
+                recv_p.field(field.name.clone())
+            }
+
+            // ── try ───────────────────────────────────────────────────────────
+            ExprKind::Try(inner) => {
+                let inner_p = self.lower_expr(inner);
+                let tmp = self.fresh_tmp(ty, span);
+                // Simplified: Just move the inner value
+                self.emit(
+                    StatementKind::Assign(Place::local(tmp), Rvalue::Use(Operand::Move(inner_p))),
+                    span,
+                );
+                Place::local(tmp)
+            }
+
+            // ── cast ──────────────────────────────────────────────────────────
+            ExprKind::Cast { expr: inner, ty: _ } => {
+                let inner_p = self.lower_expr(inner);
+                let tmp = self.fresh_tmp(ty, span);
+                self.emit(
+                    StatementKind::Assign(Place::local(tmp), Rvalue::Use(Operand::Move(inner_p))),
+                    span,
+                );
+                Place::local(tmp)
+            }
+
+            // ── block expression ──────────────────────────────────────────────
+            ExprKind::Block(block) => {
+                self.lower_block(block, span).unwrap_or_else(|| {
+                    let tmp = self.fresh_tmp(TypeId::VOID, span);
+                    Place::local(tmp)
+                })
+            }
+
+            // ── unsafe block ──────────────────────────────────────────────────
+            ExprKind::Unsafe(block) => {
+                self.lower_block(block, span).unwrap_or_else(|| {
+                    let tmp = self.fresh_tmp(TypeId::VOID, span);
+                    Place::local(tmp)
+                })
+            }
         }
     }
 }
