@@ -547,6 +547,55 @@ impl<'tcx> CfgBuilder<'tcx> {
                     Place::local(tmp)
                 })
             }
+
+            // ── array literal ─────────────────────────────────────────────────
+            ExprKind::ArrayLit(kind) => {
+                let elems: Vec<Operand> = match kind {
+                    ArrayLitKind::List(elems) => {
+                        elems.iter().map(|e| Operand::Move(self.lower_expr(e))).collect()
+                    }
+                    ArrayLitKind::Repeat { init, len: _ } => {
+                        vec![Operand::Move(self.lower_expr(init))]
+                    }
+                };
+                let tmp = self.fresh_tmp(ty, span);
+                self.emit(
+                    StatementKind::Assign(Place::local(tmp), Rvalue::Aggregate(AggregateKind::Array, elems)),
+                    span,
+                );
+                Place::local(tmp)
+            }
+
+            // ── tuple ─────────────────────────────────────────────────────────
+            ExprKind::Tuple(elems) => {
+                let operands: Vec<_> = elems.iter()
+                    .map(|e| Operand::Move(self.lower_expr(e)))
+                    .collect();
+                let tmp = self.fresh_tmp(ty, span);
+                self.emit(
+                    StatementKind::Assign(Place::local(tmp), Rvalue::Aggregate(AggregateKind::Tuple, operands)),
+                    span,
+                );
+                Place::local(tmp)
+            }
+
+            // ── struct literal ────────────────────────────────────────────────
+            ExprKind::StructLit { path, fields } => {
+                let name = path.segments.last().map(|s| s.name.clone()).unwrap_or_default();
+                let operands: Vec<_> = fields.iter()
+                    .filter_map(|f| f.value.as_ref())
+                    .map(|e| Operand::Move(self.lower_expr(e)))
+                    .collect();
+                let tmp = self.fresh_tmp(ty, span);
+                self.emit(
+                    StatementKind::Assign(
+                        Place::local(tmp),
+                        Rvalue::Aggregate(AggregateKind::Struct(name), operands),
+                    ),
+                    span,
+                );
+                Place::local(tmp)
+            }
         }
     }
 }
