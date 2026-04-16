@@ -282,6 +282,61 @@ impl<'tcx> CfgBuilder<'tcx> {
                 let tmp = self.fresh_tmp(TypeId::VOID, span);
                 Place::local(tmp)
             }
+
+            // ── if / else ─────────────────────────────────────────────────────
+            ExprKind::If { cond, then, else_ } => {
+                let cond_p  = self.lower_expr(cond);
+                let then_bb = self.new_block();
+                let else_bb = self.new_block();
+                let join_bb = self.new_block();
+
+                self.cfg.set_terminator(self.current, Terminator {
+                    kind: TerminatorKind::SwitchInt {
+                        discriminant: Operand::Move(cond_p),
+                        targets: vec![(1, then_bb)],
+                        otherwise: else_bb,
+                    },
+                    span,
+                });
+
+                // Then branch
+                self.current = then_bb;
+                let then_place = self.lower_block(then, span);
+                let then_end = self.current;
+                if self.cfg.block(then_end).terminator.is_none() {
+                    self.cfg.set_terminator(then_end, Terminator {
+                        kind: TerminatorKind::Goto(join_bb),
+                        span,
+                    });
+                }
+
+                // Else branch
+                self.current = else_bb;
+                let else_place = if let Some(else_expr) = else_ {
+                    Some(self.lower_expr(else_expr))
+                } else {
+                    None
+                };
+                let else_end = self.current;
+                if self.cfg.block(else_end).terminator.is_none() {
+                    self.cfg.set_terminator(else_end, Terminator {
+                        kind: TerminatorKind::Goto(join_bb),
+                        span,
+                    });
+                }
+
+                // Join block
+                self.current = join_bb;
+
+                // Produce a result tmp that receives whichever branch ran
+                let result = self.fresh_tmp(ty, span);
+                if let Some(tp) = then_place {
+                    // We'd normally insert phi-nodes here;
+                    // In our simplified CFG we just note the result place.
+                    let _ = (tp, else_place);
+                }
+                Place::local(result)
+            }
         }
     }
 }
