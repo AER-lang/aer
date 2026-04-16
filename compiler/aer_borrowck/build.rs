@@ -480,6 +480,28 @@ impl<'tcx> CfgBuilder<'tcx> {
                 let tmp = self.fresh_tmp(TypeId::NORETURN, span);
                 Place::local(tmp)
             }
+
+            // ── call ──────────────────────────────────────────────────────────
+            ExprKind::Call { callee, args } => {
+                let callee_p = self.lower_expr(callee);
+                let arg_ps: Vec<_> = args.iter().map(|a| {
+                    let p = self.lower_expr(a);
+                    Operand::Move(p)
+                }).collect();
+                let result = self.fresh_tmp(ty, span);
+                let next_bb = self.new_block();
+                let cur = self.current;
+                self.cfg.set_terminator(cur, Terminator {
+                    kind: TerminatorKind::Call {
+                        func: Operand::Move(callee_p),
+                        args: arg_ps,
+                        destination: Some((Place::local(result), next_bb)),
+                    },
+                    span,
+                });
+                self.current = next_bb;
+                Place::local(result)
+            }
         }
     }
 }
