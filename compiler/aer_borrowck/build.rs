@@ -235,6 +235,22 @@ impl<'tcx> CfgBuilder<'tcx> {
                 );
                 Place::local(tmp)
             }
+
+            // ── Binary op ─────────────────────────────────────────────────────
+            ExprKind::Binary { op, lhs, rhs } => {
+                let lhs_p = self.lower_expr(lhs);
+                let rhs_p = self.lower_expr(rhs);
+                let mir_op = ast_binop_to_cfg(*op);
+                let tmp = self.fresh_tmp(ty, span);
+                self.emit(
+                    StatementKind::Assign(
+                        Place::local(tmp),
+                        Rvalue::BinaryOp(mir_op, Operand::Move(lhs_p), Operand::Move(rhs_p)),
+                    ),
+                    span,
+                );
+                Place::local(tmp)
+            }
         }
     }
 }
