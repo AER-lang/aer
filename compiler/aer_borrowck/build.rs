@@ -596,6 +596,67 @@ impl<'tcx> CfgBuilder<'tcx> {
                 );
                 Place::local(tmp)
             }
+
+            // ── closure ───────────────────────────────────────────────────────
+            ExprKind::Closure { .. } => {
+                // Closures are not fully lowered in this MVP
+                let tmp = self.fresh_tmp(ty, span);
+                Place::local(tmp)
+            }
+
+            // ── match ─────────────────────────────────────────────────────────
+            ExprKind::Match { expr: scrutinee, arms } => {
+                let scrut_p = self.lower_expr(scrutinee);
+                let join_bb = self.new_block();
+                let result_tmp = self.fresh_tmp(ty, span);
+
+                for arm in arms {
+                    let arm_bb = self.new_block();
+                    let next_bb = self.new_block();
+
+                    // Simplified: Emit a conditional branch per arm
+                    let cur = self.current;
+                    self.cfg.set_terminator(cur, Terminator {
+                        kind: TerminatorKind::SwitchInt {
+                            discriminant: Operand::Move(scrut_p.clone()),
+                            targets: vec![(0, arm_bb)],  // Placeholder condition
+                            otherwise: next_bb,
+                        },
+                        span,
+                    });
+
+                    self.current = arm_bb;
+                    let arm_val = self.lower_expr(&arm.body);
+                    self.emit(
+                        StatementKind::Assign(
+                            Place::local(result_tmp),
+                            Rvalue::Use(Operand::Move(arm_val)),
+                        ),
+                        span,
+                    );
+                    if self.cfg.block(self.current).terminator.is_none() {
+                        let cur = self.current;
+                        self.cfg.set_terminator(cur, Terminator {
+                            kind: TerminatorKind::Goto(join_bb),
+                            span,
+                        });
+                    }
+
+                    self.current = next_bb;
+                }
+
+                // Final arm falls into join
+                if self.cfg.block(self.current).terminator.is_none() {
+                    let cur = self.current;
+                    self.cfg.set_terminator(cur, Terminator {
+                        kind: TerminatorKind::Goto(join_bb),
+                        span,
+                    });
+                }
+
+                self.current = join_bb;
+                Place::local(result_tmp)
+            }
         }
     }
 }
