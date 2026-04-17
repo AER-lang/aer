@@ -705,3 +705,28 @@ impl<'tcx> CfgBuilder<'tcx> {
         self.lower_expr(expr)
     }
 }
+
+// ── AST op translation ────────────────────────────────────────────────────────
+
+fn ast_binop_to_cfg(op: aer_parser::ast::BinOp) -> BinOp {
+    use aer_parser::ast::BinOp as A;
+    match op {
+        A::Add => BinOp::Add, A::Sub => BinOp::Sub, A::Mul => BinOp::Mul,
+        A::Div => BinOp::Div, A::Rem => BinOp::Rem,
+        A::BitAnd => BinOp::BitAnd, A::BitOr => BinOp::BitOr,
+        A::BitXor => BinOp::BitXor, A::Shl => BinOp::Shl, A::Shr => BinOp::Shr,
+        A::Eq => BinOp::Eq, A::Ne => BinOp::Ne,
+        A::Lt => BinOp::Lt, A::Le => BinOp::Le,
+        A::Gt => BinOp::Gt, A::Ge => BinOp::Ge,
+        A::And => BinOp::And, A::Or => BinOp::Or,
+        A::Range | A::RangeInclusive => BinOp::Add, // placeholder
+    }
+}
+
+// ── Public entry point ────────────────────────────────────────────────────────
+
+/// Build the CFG for a single function item.
+pub fn build_fn_cfg(f: &FnItem, tcx: &CheckResult) -> Cfg {
+    let builder = CfgBuilder::new(f.name.name.clone(), tcx);
+    builder.build_fn(f)
+}
