@@ -657,6 +657,51 @@ impl<'tcx> CfgBuilder<'tcx> {
                 self.current = join_bb;
                 Place::local(result_tmp)
             }
+
+            // ── method call ───────────────────────────────────────────────────
+            ExprKind::MethodCall { receiver, args, .. } => {
+                let _recv = self.lower_expr(receiver);
+                for a in args { self.lower_expr(a); }
+                let tmp = self.fresh_tmp(ty, span);
+                Place::local(tmp)
+            }
+
+            // ── index ─────────────────────────────────────────────────────────
+            ExprKind::Index { expr: recv, index } => {
+                let recv_p  = self.lower_expr(recv);
+                let _idx_p  = self.lower_expr(index);
+                recv_p // Simplified: Return the base place
+            }
+
+            // ── comptime / defer ─────────────────────────────────────────────
+            ExprKind::Comptime(block) | ExprKind::Defer(block) => {
+                self.lower_block(block, span).unwrap_or_else(|| {
+                    let tmp = self.fresh_tmp(TypeId::VOID, span);
+                    Place::local(tmp)
+                })
+            }
         }
+    }
+
+    /// Lower an expression as a place (lvalue context, left side of assignment)
+    fn lower_expr_as_place(&mut self, expr: &Expr) -> Place {
+        match &expr.kind {
+            ExprKind::Path(path) if path.segments.len() == 1 => {
+                let name = &path.segments[0].name;
+                if let Some(&id) = self.locals.get(name.as_str()) {
+                    return Place::local(id);
+                }
+            }
+            ExprKind::Field { expr: recv, field } => {
+                let base = self.lower_expr_as_place(recv);
+                return base.field(field.name.clone());
+            }
+            ExprKind::Unary { op: aer_parser::ast::UnOp::Deref, expr: inner } => {
+                return self.lower_expr_as_place(inner).deref();
+            }
+            _ => {}
+        }
+        // Fallback: treat as rvalue into a tmp
+        self.lower_expr(expr)
     }
 }
