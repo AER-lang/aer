@@ -87,4 +87,11 @@ impl Place {
     pub fn is_local(&self) -> bool {
         self.proj.is_empty()
     }
+
+    /// True if other is a prefix of self (i.e. self is a sub-place of other)
+    pub fn has_prefix(&self, other: &Place) -> bool {
+        if self.root != other.root { return false; }
+        if other.proj.len() > self.proj.len() { return false; }
+        self.proj.starts_with(&other.proj)
+    }
 }
