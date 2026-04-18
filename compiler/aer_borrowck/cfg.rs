@@ -67,3 +67,9 @@ pub struct Place {
     pub root: LocalId,
     pub proj: Vec<Projection>,
 }
+
+impl Place {
+    pub fn local(id: LocalId) -> Self {
+        Self { root: id, proj: Vec::new() }
+    }
+}
