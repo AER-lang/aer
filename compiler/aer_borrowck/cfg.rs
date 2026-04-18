@@ -53,3 +53,17 @@ pub enum Projection {
     /// `*` — dereference.
     Deref,
 }
+
+/// A memory location: A root local plus zero or more projections
+///
+/// Examples:
+///
+///     - x             → Place { root: id_of_x, proj: [] }
+///     - p.x           → Place { root: id_of_p, proj: [Field("x")] }
+///     - *ptr          → Place { root: id_of_ptr, proj: [Deref] }
+///     - arr[0].name   → Place { root: id_of_arr, proj: [Index, Field("name")] }
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Place {
+    pub root: LocalId,
+    pub proj: Vec<Projection>,
+}
