@@ -82,4 +82,9 @@ impl Place {
         self.proj.push(Projection::Deref);
         self
     }
+
+    /// True if this place is exactly a local variable (no projections)
+    pub fn is_local(&self) -> bool {
+        self.proj.is_empty()
+    }
 }
