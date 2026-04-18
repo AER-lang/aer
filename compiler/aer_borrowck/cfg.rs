@@ -42,3 +42,14 @@ impl std::fmt::Display for LocalId {
         if self.0 == 0 { write!(f, "_return") } else { write!(f, "_{}", self.0) }
     }
 }
+
+/// A projection step from one place to a sub-place.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Projection {
+    /// `.field_name` — struct field access.
+    Field(String),
+    /// `[i]` — array/slice index (the index is not tracked precisely in MVP).
+    Index,
+    /// `*` — dereference.
+    Deref,
+}
