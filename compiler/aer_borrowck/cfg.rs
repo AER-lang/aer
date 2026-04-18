@@ -72,4 +72,9 @@ impl Place {
     pub fn local(id: LocalId) -> Self {
         Self { root: id, proj: Vec::new() }
     }
+
+    pub fn field(mut self, name: impl Into<String>) -> Self {
+        self.proj.push(Projection::Field(name.into()));
+        self
+    }
 }
