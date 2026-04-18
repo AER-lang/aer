@@ -95,3 +95,17 @@ impl Place {
         self.proj.starts_with(&other.proj)
     }
 }
+
+impl std::fmt::Display for Place {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.root)?;
+        for p in &self.proj {
+            match p {
+                Projection::Field(n) => write!(f, ".{}", n)?,
+                Projection::Index    => write!(f, "[_]")?,
+                Projection::Deref    => write!(f, ".*")?,
+            }
+        }
+        Ok(())
+    }
+}
