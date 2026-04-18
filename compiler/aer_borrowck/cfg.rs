@@ -77,4 +77,9 @@ impl Place {
         self.proj.push(Projection::Field(name.into()));
         self
     }
+
+    pub fn deref(mut self) -> Self {
+        self.proj.push(Projection::Deref);
+        self
+    }
 }
