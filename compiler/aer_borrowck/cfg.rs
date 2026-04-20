@@ -188,3 +188,11 @@ pub enum StatementKind {
     /// No-op, used as a placeholder after lowering errors
     Nop,
 }
+
+// ── Terminators ───────────────────────────────────────────────────────────────
+
+#[derive(Debug,  Clone)]
+pub struct Terminator {
+    pub kind: TerminatorKind,
+    pub span: span,
+}
