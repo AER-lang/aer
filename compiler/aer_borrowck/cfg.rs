@@ -112,11 +112,11 @@ impl std::fmt::Display for Place {
 
 // ── Rvalue / Operand ──────────────────────────────────────────────────────────
 
-/// A simple value expression, the right hand size of an assignment in the CFG
+/// A simple value expression, the right-hand side of an assignment in the CFG
 /// All complex expressions are decomposed into a sequence of these
 #[derive(Debug, Clone)]
 pub enum Rvalue {
-    /// Use the value at a place (copy or mov, depending on the type)
+    /// Use the value at a place (copy or move, depending on the type)
     Use(Operand),
     /// &place, shared borrow
     Ref(Place),
@@ -126,7 +126,7 @@ pub enum Rvalue {
     BinaryOp(BinOp, Operand, Operand),
     /// A unary operation
     UnaryOp(UnOp, Operand),
-    /// Aggregate construction: Struct, tuple or array
+    /// Aggregate construction: Struct, tuple, or array
     Aggregate(AggregateKind, Vec<Operand>),
 }
 
@@ -134,7 +134,7 @@ pub enum Rvalue {
 pub enum Operand {
     /// Copy or move a place
     Move(Place),
-    /// A constant value (literals, compile-time cosntants)
+    /// A constant value (literals, compile-time constants)
     Const(ConstVal),
 }
 
@@ -157,3 +157,10 @@ pub enum BinOp {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnOp { Neg, Not, Deref }
+
+#[derive(Debug, Clone)]
+pub enum AggregateKind {
+    Tuple,
+    Array,
+    Struct(String),
+}
