@@ -109,3 +109,23 @@ impl std::fmt::Display for Place {
         Ok(())
     }
 }
+
+// ── Rvalue / Operand ──────────────────────────────────────────────────────────
+
+/// A simple value expression, the right hand size of an assignment in the CFG
+/// All complex expressions are decomposed into a sequence of these
+#[derive(Debug, Clone)]
+pub enum Rvalue {
+    /// Use the value at a place (copy or mov, depending on the type)
+    Use(Operand),
+    /// &place, shared borrow
+    Ref(Place),
+    /// &mut place, exclusive borrow
+    RefMut(Place),
+    /// A binary operation
+    BinaryOp(BinOp, Operand, Operand),
+    /// A unary operation
+    UnaryOp(UnOp, Operand),
+    /// Aggregate construction: Struct, tuple or array
+    Aggregate(AggregateKind, Vec<Operand>),
+}
