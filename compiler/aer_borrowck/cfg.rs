@@ -164,3 +164,13 @@ pub enum AggregateKind {
     Array,
     Struct(String),
 }
+
+// ── CFG Statements ────────────────────────────────────────────────────────────
+
+/// A single statement inside a basic block
+/// Each statement is straight-line, no branching
+#[derive(Debug, Clone)]
+pub struct Statement {
+    pub kind: StatementKind,
+    pub span: Span,
+}
