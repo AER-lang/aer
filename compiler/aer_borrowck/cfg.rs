@@ -154,3 +154,6 @@ pub enum BinOp {
     Eq, Ne, Lt, Le, Gt, Ge,
     And, Or,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum UnOp { Neg, Not, Deref }
