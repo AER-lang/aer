@@ -174,3 +174,17 @@ pub struct Statement {
     pub kind: StatementKind,
     pub span: Span,
 }
+
+#[derive(Debug, Clone)]
+pub enum StatementKind {
+    /// place = rvalue
+    Assign(Place, Rvalue),
+    /// drop(place), explicit drop at end of scope
+    Drop(Place),
+    /// A storage-live annotation: the local is now in scope
+    StorageLive(LocalId),
+    /// A storage-dead annotation: the local is going out of scope
+    StorageDead(LocalId),
+    /// No-op, used as a placeholder after lowering errors
+    Nop,
+}
