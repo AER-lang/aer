@@ -129,3 +129,12 @@ pub enum Rvalue {
     /// Aggregate construction: Struct, tuple or array
     Aggregate(AggregateKind, Vec<Operand>),
 }
+
+#[derive(Debug, Clone)]
+pub enum Operand {
+    /// Copy or move a place
+    Move(Place),
+    /// A constant value (literals, compile-time cosntants)
+    Const(ConstVal),
+}
+
