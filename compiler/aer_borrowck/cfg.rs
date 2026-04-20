@@ -138,3 +138,11 @@ pub enum Operand {
     Const(ConstVal),
 }
 
+#[derive(Debug, Clone)]
+pub enum ConstVal {
+    Int(u128),
+    Float(f64),
+    Bool(bool),
+    Str(String),
+    Void,
+}
