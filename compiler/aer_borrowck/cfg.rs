@@ -196,3 +196,48 @@ pub struct Terminator {
     pub kind: TerminatorKind,
     pub span: span,
 }
+
+#[derive(Debug, Clone)]
+pub enum TerminatorKind {
+    /// Fall through to the single successor block
+    Goto(BlockId),
+    /// Conditional branch
+    SwitchInt {
+        /// The place holding the discriminant
+        discriminant: Operand,
+        /// (value, target) pairs, the last entry is the "otherwise" target
+        targets: Vec<(u128, BlockId)>,
+        otherwise: BlockId,
+    },
+    /// Function return
+    Return,
+    /// Unreachable (after loop {} with no break, or noreturn calls)
+    Unreachable,
+    Call {
+        func: Operand,
+        args: Vec<Operand>,
+        /// Where to write the return value, and which block to go to after
+        destination: Option<(Place, BlockId)>,
+    },
+    /// drop + goto (used for values with destructors at scope exit)
+    DropAndGoto { place: Place, target: BlockId },
+}
+
+impl TerminatorKind {
+    /// The successor blocks of this terminator
+    pub fn successors(&self) -> Vec<BlockId> {
+        match self {
+            Self::Goto(b)                        => vec![*b],
+            Self::SwitchInt { targets, otherwise, .. } => {
+                let mut s: Vec<_> = targets.iter().map(|(_, b)| *b).collect();
+                s.push(*otherwise);
+                s.dedup();
+                s
+            }
+            Self::Return | Self::Unreachable     => vec![],
+            Self::Call { destination: Some((_, b)), .. } => vec![*b],
+            Self::Call { destination: None, .. } => vec![],
+            Self::DropAndGoto { target, .. }     => vec![*target],
+        }
+    }
+}
