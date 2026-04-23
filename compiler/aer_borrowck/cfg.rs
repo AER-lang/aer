@@ -375,4 +375,32 @@ impl Cfg {
         }
         preds
     }
+
+    // ── Debug dump ────────────────────────────────────────────────────────────
+
+    pub fn dump(&self) -> String {
+        let mut out = format!("fn {} {{\n", self.name);
+        for local in &self.locals {
+            out += &format!(
+                "  let {}{}: {:?}  // {}\n",
+                if local.mutable { "mut " } else { "" },
+                local.name,
+                local.ty,
+                local.id,
+            );
+        }
+        out += "\n";
+        for block in &self.blocks {
+            out += &format!("  {}:\n", block.id);
+            for stmt in &block.stmts {
+                out += &format!("    {:?}\n", stmt.kind);
+            }
+            match &block.terminator {
+                Some(t) => out += &format!("    {:?}\n", t.kind),
+                None    => out += "    <no terminator>\n",
+            }
+        }
+        out += "}\n";
+        out
+    }
 }
