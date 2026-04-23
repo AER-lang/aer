@@ -286,3 +286,15 @@ pub struct LocalDecl {
     /// True for function parameters (always initialized on entry)
     pub is_param: bool,
 }
+
+// ── CFG (per function) ────────────────────────────────────────────────────────
+
+/// The complete CFG for a single function body
+pub struct Cfg {
+    /// Function name, for diagnostics.
+    pub name: String,
+    /// All local variable declarations, indexed by LocalId
+    pub locals: Vec<LocalDecl>,
+    /// All basic blocks, indexed by BlockId
+    pub blocks: Vec<BasicBlock>,
+}
