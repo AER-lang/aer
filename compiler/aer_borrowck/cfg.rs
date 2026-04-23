@@ -319,4 +319,9 @@ impl Cfg {
     pub fn block_mut(&mut self, id: BlockId) -> &mut BasicBlock {
         &mut self.blocks[id.0 as usize]
     }
+
+    /// Append a statement to a block
+    pub fn push_stmt(&mut self, block: BlockId, stmt: Statement) {
+        self.blocks[block.0 as usize].stmts.push(stmt);
+    }
 }
