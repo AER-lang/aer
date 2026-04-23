@@ -258,3 +258,12 @@ impl std::fmt::Display for BlockId {
         write!(f, "BB{}", self.0)
     }
 }
+
+/// A basic block: A straight-line sequence of statements and a terminator
+#[derive(Debug, Clone)]
+pub struct BasicBlock {
+    pub id: BlockId,
+    pub stmts: Vec<Statement>,
+    pub terminator: Option<Terminator>, // None while still being built
+}
+
