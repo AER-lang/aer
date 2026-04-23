@@ -358,4 +358,21 @@ impl Cfg {
     pub fn local(&self, id: LocalId) -> &LocalDecl {
         &self.locals[id.0 as usize]
     }
+
+    // ── Predecessor map ───────────────────────────────────────────────────────
+
+    /// Build a predecessor map: For each block, the set of blocks that can
+    /// jump to it. Used in dataflow analysis
+    pub fn predecessors(&self) -> Vec<Vec<BlockId>> {
+        let n = self.blocks.len();
+        let mut preds: Vec<Vec<BlockId>> = vec![Vec::new(); n];
+        for block in &self.blocks {
+            if let Some(term) = &block.terminator {
+                for succ in term.kind.successors() {
+                    preds[succ.0 as usize].push(block.id);
+                }
+            }
+        }
+        preds
+    }
 }
