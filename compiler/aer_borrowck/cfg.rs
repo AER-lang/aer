@@ -303,4 +303,12 @@ impl Cfg {
     pub fn new(name: String) -> Self {
         Self { name, locals: Vec::new(), blocks: Vec::new() }
     }
+
+    // ── Block construction ────────────────────────────────────────────────────
+    /// Allocate a new (empty) basic block and return its ID
+    pub fn new_block(&mut self) -> BlockId {
+        let id = BlockId(self.blocks.len() as u32);
+        self.blocks.push(BasicBlock::new(id));
+        id
+    }
 }
