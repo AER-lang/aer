@@ -315,4 +315,8 @@ impl Cfg {
     pub fn block(&self, id: BlockId) -> &BasicBlock {
         &self.blocks[id.0 as usize]
     }
+
+    pub fn block_mut(&mut self, id: BlockId) -> &mut BasicBlock {
+        &mut self.blocks[id.0 as usize]
+    }
 }
