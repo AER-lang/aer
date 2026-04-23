@@ -267,3 +267,8 @@ pub struct BasicBlock {
     pub terminator: Option<Terminator>, // None while still being built
 }
 
+impl BasicBlock {
+    pub fn new(id: BlockId) -> Self {
+        Self { id, stmts: Vec::new(), terminator: None }
+    }
+}
