@@ -354,4 +354,8 @@ impl Cfg {
         });
         id
     }
+
+    pub fn local(&self, id: LocalId) -> &LocalDecl {
+        &self.locals[id.0 as usize]
+    }
 }
