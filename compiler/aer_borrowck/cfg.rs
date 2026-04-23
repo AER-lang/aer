@@ -272,3 +272,17 @@ impl BasicBlock {
         Self { id, stmts: Vec::new(), terminator: None }
     }
 }
+
+// ── Local variable metadata ───────────────────────────────────────────────────
+
+/// Metadata for a single local variable slot in a function
+#[derive(Debug, Clone)]
+pub struct LocalDecl {
+    pub id:      LocalId,
+    pub name:    String,
+    pub ty:      TypeId,
+    pub mutable: bool,
+    pub span:    Span,
+    /// True for function parameters (always initialized on entry)
+    pub is_param: bool,
+}
