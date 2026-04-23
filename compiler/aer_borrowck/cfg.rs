@@ -298,3 +298,9 @@ pub struct Cfg {
     /// All basic blocks, indexed by BlockId
     pub blocks: Vec<BasicBlock>,
 }
+
+impl Cfg {
+    pub fn new(name: String) -> Self {
+        Self { name, locals: Vec::new(), blocks: Vec::new() }
+    }
+}
