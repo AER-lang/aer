@@ -311,4 +311,8 @@ impl Cfg {
         self.blocks.push(BasicBlock::new(id));
         id
     }
+
+    pub fn block(&self, id: BlockId) -> &BasicBlock {
+        &self.blocks[id.0 as usize]
+    }
 }
