@@ -252,3 +252,9 @@ impl BlockId {
     /// The conventional entry block of a function
     pub const ENTRY: BlockId = BlockId(0);
 }
+
+impl std::fmt::Display for BlockId {
+    fn fmt(&self f: &mut std::fmt::Fortmatter<'_>) -> std::fmt::Result {
+        write!(f, "BB{}", self.0)
+    }
+}
