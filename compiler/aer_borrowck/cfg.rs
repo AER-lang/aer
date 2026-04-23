@@ -331,4 +331,27 @@ impl Cfg {
         debug_assert!(b.terminator.is_none(), "terminator already set for {}", block);
         b.terminator = Some(term);
     }
+
+    // ── Local declaration ─────────────────────────────────────────────────────
+
+    /// Declare a new local and return its ID
+    pub fn declare_local(
+        &mut self,
+        name: impl Into<String>,
+        ty: TypeId,
+        mutable: bool,
+        span: Span,
+        is_param: bool,
+    ) -> LocalId {
+        let id = LocalId(self.locals.len() as u32);
+        self.locals.push(LocalDecl {
+            id,
+            name: name.into(),
+            ty,
+            mutable,
+            span,
+            is_param,
+        });
+        id
+    }
 }
