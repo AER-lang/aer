@@ -324,4 +324,11 @@ impl Cfg {
     pub fn push_stmt(&mut self, block: BlockId, stmt: Statement) {
         self.blocks[block.0 as usize].stmts.push(stmt);
     }
+
+    /// Set the terminator of a block (panics if already set)
+    pub fn set_terminator(&mut self, block: BlockId, term: Terminator) {
+        let b = &mut self.blocks[block.0 as usize];
+        debug_assert!(b.terminator.is_none(), "terminator already set for {}", block);
+        b.terminator = Some(term);
+    }
 }
