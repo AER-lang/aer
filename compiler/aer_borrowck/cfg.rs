@@ -241,3 +241,14 @@ impl TerminatorKind {
         }
     }
 }
+
+// ── Basic Block ───────────────────────────────────────────────────────────────
+
+/// A unique identifier for a basic block within a function's CFG
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct BlockId(pub u32);
+
+impl BlockId {
+    /// The conventional entry block of a function
+    pub const ENTRY: BlockId = BlockId(0);
+}
