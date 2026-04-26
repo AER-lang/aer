@@ -98,3 +98,9 @@ impl BorrowError {
         }
     }
 }
+
+impl std::fmt::Display for BorrowError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[borrow error] {}: {}", self.span, self.message())
+    }
+}
