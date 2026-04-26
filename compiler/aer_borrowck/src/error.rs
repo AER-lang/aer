@@ -46,3 +46,9 @@ pub enum BorrowErrorKind {
     },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BorrowKind {
+    Shared,     // &T
+    Exclusive   // When it's &mut T
+}
+
