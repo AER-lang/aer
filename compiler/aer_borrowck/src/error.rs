@@ -48,12 +48,18 @@ pub enum BorrowErrorKind {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BorrowKind {
-    Shared,     // &T
-    Exclusive   // When it's &mut T
+    Shared,    // &T
+    Exclusive, // &mut T
 }
 
 impl BorrowKind {
     pub fn as_str(self) -> &'static str {
         match self { Self::Shared => "&", Self::Exclusive => "&mut" }
+    }
+}
+
+impl BorrowError {
+    pub fn new(span: Span, kind: BorrowErrorKind) -> Self {
+        Self { span, kind }
     }
 }
