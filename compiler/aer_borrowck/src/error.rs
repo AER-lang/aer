@@ -52,3 +52,8 @@ pub enum BorrowKind {
     Exclusive   // When it's &mut T
 }
 
+impl BorrowKind {
+    pub fn as_str(self) -> &'static str {
+        match self { Self::Shared => "&", Self::Exclusive => "&mut" }
+    }
+}
