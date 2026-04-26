@@ -8,3 +8,41 @@ pub struct BorrowError {
     pub kind:    BorrowErrorKind,
 }
 
+#[derive(Debug, Clone)]
+pub enum BorrowErrorKind {
+    /// A value was used after it was moved
+    UseAfterMove {
+        name:   String,
+        move_at: Span,
+    },
+    /// A value was moved while it was borrowed
+    MoveWhiteBorrowed {
+        name:       String,
+        borrow_span: Span,
+    },
+    /// An exclusive borrow (&mut) conflicts with an existing borrow
+    ConflictingBorrow {
+        place:          String,
+        existing_kind:  BorrowKind,
+        existing_span:  Span,
+        new_kind:       BorrowKind,
+    },
+    /// Tried to mutate an immutable binding
+    MutationOfImmutable {
+        name: String,
+    },
+    /// Tried to take &mut of an immutable binding
+    RefMutOfImmutable {
+        name: String,
+    },
+    /// A borrow's lifetime exceeded the lifetime of the borrowed place
+    BorrowOutlivesData {
+        borrow_span: Span,
+        data_span:   Span,
+    },
+    /// A value was used after it was dropped / storage ended
+    UseAfterDrop {
+        name: String,
+    },
+}
+
