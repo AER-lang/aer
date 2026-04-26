@@ -62,4 +62,39 @@ impl BorrowError {
     pub fn new(span: Span, kind: BorrowErrorKind) -> Self {
         Self { span, kind }
     }
+
+    pub fn message(&self) -> String {
+        match &self.kind {
+            BorrowErrorKind::UseAfterMove { name, moved_at } =>
+                format!(
+                    "use of moved value `{}`; value was moved at {}",
+                    name, moved_at
+                ),
+            BorrowErrorKind::MoveWhileBorrowed { name, borrow_span } =>
+                format!(
+                    "cannot move `{}` because it is borrowed (borrow at {})",
+                    name, borrow_span
+                ),
+            BorrowErrorKind::ConflictingBorrow { place, existing_kind, existing_span, new_kind } =>
+                format!(
+                    "cannot borrow `{}` as {} because it is already borrowed as {} at {}",
+                    place, new_kind.as_str(), existing_kind.as_str(), existing_span
+                ),
+            BorrowErrorKind::MutationOfImmutable { name } =>
+                format!("cannot assign to `{}`, which is not declared `mut`", name),
+            BorrowErrorKind::RefMutOfImmutable { name } =>
+                format!(
+                    "cannot borrow `{}` as mutable, as it is not declared with `mut`",
+                    name
+                ),
+            BorrowErrorKind::BorrowOutlivesData { borrow_span, data_span } =>
+                format!(
+                    "borrow (created at {}) does not live long enough; \
+                     borrowed data (declared at {}) is dropped first",
+                    borrow_span, data_span
+                ),
+            BorrowErrorKind::UseAfterDrop { name } =>
+                format!("use of `{}` after it has been dropped", name),
+        }
+    }
 }
