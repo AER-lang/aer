@@ -102,3 +102,18 @@ mod tests {
             r.all_errors().join("\n")
         );
     }
+
+    fn assert_borrow_error(src: &str, fragment: &str) {
+        let r = check(src);
+        assert!(
+            !r.borrow_errors.is_empty(),
+            "expected a borrow error containing {:?} but got none\ntype errors: {:?}",
+            fragment, r.type_errors
+        );
+        assert!(
+            r.borrow_errors.iter().any(|e| e.to_string().contains(fragment)),
+            "expected borrow error containing {:?}, got:\n{}",
+            fragment,
+            r.borrow_errors.iter().map(|e| e.to_string()).collect::<Vec<_>>().join("\n")
+        );
+    }
