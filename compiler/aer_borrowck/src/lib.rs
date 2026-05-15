@@ -51,3 +51,27 @@ impl BorrowCheckResult {
         self.all_errors().is_empty()
     }
 }
+
+/// Parse, type-check, and borrow-check a complete ÆR source string
+pub fn check_source(src: &str) -> BorrowCheckResult {
+    let (file, parse_errors) = parse_source(src);
+    let tcx = check(&file);
+
+    let type_errors: Vec<String> = tcx.collect_errors.iter().map(|e| e.to_string())
+        .chain(tcx.type_errors.iter().map(|e| e.to_string()))
+        .collect();
+
+    // If there are type errors we still run the borrow checker, it's
+    // tolerant of unknown types, but results may be imprecise
+    let mut all_borrow_errors = Vec::new();
+
+    for item in &file.items {
+        if let ItemKind::Fn(f) = &item.kind {
+            if f.body.is_some() {
+                let cfg = build_fn_cfg(f, &tcx);
+                let liveness = liveness::analyse(&cfg);
+                let checker = BorrowChecker::new(&cfg, &liveness);
+                all_borrow_errors.extend(checker.check());
+            }
+        }
+    }
