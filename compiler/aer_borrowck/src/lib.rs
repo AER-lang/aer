@@ -82,3 +82,23 @@ pub fn check_source(src: &str) -> BorrowCheckResult {
         borrow_errors: all_borrow_errors,
     }
 }
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cfg::{LocalId, BlockId};
+
+    fn check(src: &str) -> BorrowCheckResult {
+        check_source(src)
+    }
+
+    fn assert_clean(src: &str) {
+        let r = check(src);
+        assert!(
+            r.is_clean(),
+            "unexpected errors:\n{}",
+            r.all_errors().join("\n")
+        );
+    }
