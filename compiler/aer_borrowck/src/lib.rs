@@ -42,4 +42,12 @@ impl BorrowCheckResult {
         out.extend(self.borrow_errors.iter().map(|e| e.to_string()));
         out
     }
+
+    pub fn errors(&self) -> &[BorrowError] {
+        &self.borrow_errors
+    }
+
+    pub fn is_clean(&self) -> bool {
+        self.all_errors().is_empty()
+    }
 }
