@@ -34,3 +34,12 @@ pub struct BorrowCheckResult {
     pub borrow_errors: Vec<BorrowError>,
 }
 
+impl BorrowCheckResult {
+    /// All errors as display strings, in pipeline order
+    pub fn all_errors(&self) -> Vec<String> {
+        let mut out = self.parse_errors.clone();
+        out.extend(self.type_errors.clone());
+        out.extend(self.borrow_errors.iter().map(|e| e.to_string()));
+        out
+    }
+}
