@@ -75,3 +75,10 @@ pub fn check_source(src: &str) -> BorrowCheckResult {
             }
         }
     }
+
+    BorrowCheckResult {
+        parse_errors,
+        type_errors,
+        borrow_errors: all_borrow_errors,
+    }
+}
