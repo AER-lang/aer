@@ -2,7 +2,7 @@
 //! 
 //! Design
 //!
-//! The borrow checker does not operato on the raw AST, that would make
+//! The borrow checker does not operate on the raw AST, that would make
 //! liveness analysis very difficult the AST does not make control
 //! flow edges explicit. Instead we lower each function body into a flag CFG:
 //!
@@ -15,7 +15,7 @@
 //! }
 //!
 //! Each basic block is a straight-line sequence of statement
-//! followed by a single terminator that names the sucessor blocks
+//! followed by a single terminator that names the successor blocks
 //!
 //! Places
 //!
