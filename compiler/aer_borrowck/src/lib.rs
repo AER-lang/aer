@@ -160,3 +160,13 @@ mod tests {
         // if/else should produce at least 4 blocks (entry, then, else, join)
         assert!(cfg.blocks.len() >= 4, "expected ≥4 blocks, got {}", cfg.blocks.len());
     }
+
+    #[test]
+    fn cfg_while_creates_multiple_blocks() {
+        let src = "fn f() { let mut i = 0; while i < 10 { i += 1; } }";
+        let (file, _) = parse_source(src);
+        let tcx = check(&file);
+        let ItemKind::Fn(ref f) = file.items[0].kind else { panic!() };
+        let cfg = build_fn_cfg(f, &tcx);
+        assert!(cfg.blocks.len() >= 3);
+    }
