@@ -149,3 +149,14 @@ mod tests {
         let params: Vec<_> = cfg.locals.iter().filter(|l| l.is_param).collect();
         assert_eq!(params.len(), 2);
     }
+
+    #[test]
+    fn cfg_if_creates_multiple_blocks() {
+        let src = "fn f(x: bool) -> i32 { if x { 1 } else { 2 } }";
+        let (file, _) = parse_source(src);
+        let tcx = check(&file);
+        let ItemKind::Fn(ref f) = file.items[0].kind else { panic!() };
+        let cfg = build_fn_cfg(f, &tcx);
+        // if/else should produce at least 4 blocks (entry, then, else, join)
+        assert!(cfg.blocks.len() >= 4, "expected ≥4 blocks, got {}", cfg.blocks.len());
+    }
