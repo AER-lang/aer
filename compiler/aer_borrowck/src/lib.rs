@@ -117,3 +117,15 @@ mod tests {
             r.borrow_errors.iter().map(|e| e.to_string()).collect::<Vec<_>>().join("\n")
         );
     }
+
+    // ── CFG construction ──────────────────────────────────────────────────────
+
+    #[test]
+    fn cfg_entry_block_exists() {
+        let (file, _) = parse_source("fn f() { }");
+        let tcx = check(&file);
+        let ItemKind::Fn(ref f) = file.items[0].kind else { panic!() };
+        let cfg = build_fn_cfg(f, &tcx);
+        assert!(cfg.blocks.len() >= 1);
+        assert_eq!(cfg.blocks[0].id, BlockId::ENTRY);
+    }
