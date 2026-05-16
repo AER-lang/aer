@@ -138,3 +138,14 @@ mod tests {
         let cfg = build_fn_cfg(f, &tcx);
         assert_eq!(cfg.locals[0].id, LocalId::RETURN);
     }
+
+    #[test]
+    fn cfg_declares_params() {
+        let (file, _) = parse_source("fn add(a: i32, b: i32) -> i32 { a + b }");
+        let tcx = check(&file);
+        let ItemKind::Fn(ref f) = file.items[0].kind else { panic!() };
+        let cfg = build_fn_cfg(f, &tcx);
+        // Should have return slot + 2 params
+        let params: Vec<_> = cfg.locals.iter().filter(|l| l.is_param).collect();
+        assert_eq!(params.len(), 2);
+    }
