@@ -129,3 +129,12 @@ mod tests {
         assert!(cfg.blocks.len() >= 1);
         assert_eq!(cfg.blocks[0].id, BlockId::ENTRY);
     }
+
+    #[test]
+    fn cfg_has_return_local() {
+        let (file, _) = parse_source("fn f() -> i32 { 42 }");
+        let tcx = check(&file);
+        let ItemKind::Fn(ref f) = file.items[0].kind else { panic!() };
+        let cfg = build_fn_cfg(f, &tcx);
+        assert_eq!(cfg.locals[0].id, LocalId::RETURN);
+    }
