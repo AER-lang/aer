@@ -241,3 +241,16 @@ fn f() -> void {
 "#);
     }
 
+    #[test]
+    fn clean_two_shared_borrows() {
+        assert_clean(r#"
+fn f() -> void {
+    let x = 5;
+    let a = &x;
+    let b = &x;
+    let _ = a;
+    let _ = b;
+}
+"#);
+    }
+
