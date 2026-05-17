@@ -211,3 +211,8 @@ mod tests {
     fn clean_empty_fn() {
         assert_clean("fn f() { }");
     }
+
+    #[test]
+    fn clean_simple_fn() {
+        assert_clean("fn f(x: i32) -> i32 { x }");
+    }
