@@ -204,3 +204,10 @@ mod tests {
         // Just verify the analysis runs without panic
         let _ = live;
     }
+
+    // ── Borrow checker — clean programs ───────────────────────────────────────
+
+    #[test]
+    fn clean_empty_fn() {
+        assert_clean("fn f() { }");
+    }
