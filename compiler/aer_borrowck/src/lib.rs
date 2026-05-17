@@ -216,3 +216,12 @@ mod tests {
     fn clean_simple_fn() {
         assert_clean("fn f(x: i32) -> i32 { x }");
     }
+
+    #[test]
+    fn clean_shared_borrow() {
+        assert_clean(r#"
+            fn f(x: i32) -> &i32 {
+                let r = &x;
+                r
+            }"#);
+    }
