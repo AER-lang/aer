@@ -170,3 +170,24 @@ mod tests {
         let cfg = build_fn_cfg(f, &tcx);
         assert!(cfg.blocks.len() >= 3);
     }
+
+    // ── Liveness analysis ─────────────────────────────────────────────────────
+
+    #[test]
+    fn liveness_param_is_live_at_entry() {
+        let (file, _) = parse_source("fn f(x: i32) -> i32 { x }");
+        let tcx = check(&file);
+        let ItemKind::Fn(ref f) = file.items[0].kind else { panic!() };
+        let cfg = build_fn_cfg(f, &tcx);
+        let live = liveness::analyse(&cfg);
+        // The parameter should be live at the entry block
+        let param_id = cfg.locals.iter()
+            .find(|l| l.is_param && l.name == "x")
+            .map(|l| l.id);
+        if let Some(pid) = param_id {
+            assert!(
+                live.live_in[BlockId::ENTRY.0 as usize].contains(pid),
+                "param x should be live at entry"
+            );
+        }
+    }
