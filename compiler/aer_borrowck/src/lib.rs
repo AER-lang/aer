@@ -225,3 +225,18 @@ mod tests {
                 r
             }"#);
     }
+
+    #[test]
+    fn clean_mut_borrow_after_use() {
+        // Under NLL: the shared borrow r ends at its last use (the call),
+        // so the mutation of x afterwards is valid
+        assert_clean(r#"
+            fn use_ref(r: &i32) -> i32 { 0 }
+            fn f() -> void {
+                let mut x = 5;
+                let r = &x;
+                use_ref(r);
+                x = 10;
+            }
+            "#);
+    }
