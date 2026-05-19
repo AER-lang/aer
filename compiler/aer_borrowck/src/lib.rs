@@ -261,6 +261,7 @@ fn f() -> i32 {
     let mut x = 0;
     x = 42;
     x
+}
 "#);
     }
 
@@ -271,12 +272,13 @@ fn inc(r: &mut i32) -> void { }
 fn f() -> void {
     let mut x = 0;
     inc(&mut x);
+}
 "#);
     }
 
     #[test]
-    fn clean_arithmetic() {
-        assert_clean("fn f(a: i32, b: i32) -> i32 { a + b }");
+    fn clean_if_expression() {
+        assert_clean("fn f(x: bool) -> i32 { if x { 1 } else { 2 } }");
     }
 
     #[test]
@@ -292,6 +294,15 @@ fn f() -> void {
     while i < 10 {
         i += 1;
     }
+}
+"#);
+    }
+
+    #[test]
+    fn clean_for_loop() {
+        assert_clean(r#"
+fn f() -> void {
+    for i in 0..10 { }
 }
 "#);
     }
