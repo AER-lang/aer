@@ -306,3 +306,13 @@ fn f() -> void {
 }
 "#);
     }
+
+    #[test]
+    fn clean_return_mid_fn() {
+        assert_clean(r#"
+fn f(x: i32) -> i32 {
+    if x < 0 { return 0; }
+    x
+}
+"#);
+    }
