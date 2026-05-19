@@ -334,3 +334,13 @@ fn get_x(p: Point) -> f64 { p.x }
 "#);
     }
 
+    #[test]
+    fn clean_unsafe_block() {
+        assert_clean(r#"
+fn f() -> void {
+    unsafe {
+        let x = 42;
+    }
+}
+"#);
+    }
