@@ -284,3 +284,14 @@ fn f() -> void {
         assert_clean("fn f(x: bool) -> i32 { if x { 1 } else { 2 } }");
     }
 
+    #[test]
+    fn clean_while_loop() {
+        assert_clean(r#"
+fn f() -> void {
+    let mut i = 0;
+    while i < 10 {
+        i += 1;
+    }
+}
+"#);
+    }
