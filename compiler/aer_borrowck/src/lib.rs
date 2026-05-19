@@ -229,7 +229,7 @@ mod tests {
     #[test]
     fn clean_mut_borrow_after_use() {
         // Under NLL: the shared borrow r ends at its last use (the call),
-        // so the mutation of `x` afterwards is valid
+        // so the mutation of x afterwards is valid
         assert_clean(r#"
 fn use_ref(r: &i32) -> i32 { 0 }
 fn f() -> void {
@@ -254,3 +254,12 @@ fn f() -> void {
 "#);
     }
 
+    #[test]
+    fn clean_mutable_local_assigned() {
+        assert_clean(r#"
+fn f() -> i32 {
+    let mut x = 0;
+    x = 42;
+    x
+"#);
+    }
