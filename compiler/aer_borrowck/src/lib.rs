@@ -316,3 +316,12 @@ fn f(x: i32) -> i32 {
 }
 "#);
     }
+
+    #[test]
+    fn clean_nested_fns() {
+        assert_clean(r#"
+fn add(a: i32, b: i32) -> i32 { a + b }
+fn double(x: i32) -> i32 { add(x, x) }
+fn quadruple(x: i32) -> i32 { double(double(x)) }
+"#);
+    }
