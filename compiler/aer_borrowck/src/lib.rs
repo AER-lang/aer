@@ -263,3 +263,13 @@ fn f() -> i32 {
     x
 "#);
     }
+
+    #[test]
+    fn clean_mut_ref_to_mut_local() {
+        assert_clean(r#"
+fn inc(r: &mut i32) -> void { }
+fn f() -> void {
+    let mut x = 0;
+    inc(&mut x);
+"#);
+    }
