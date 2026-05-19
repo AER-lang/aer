@@ -279,3 +279,8 @@ fn f() -> void {
         assert_clean("fn f(a: i32, b: i32) -> i32 { a + b }");
     }
 
+    #[test]
+    fn clean_if_expression() {
+        assert_clean("fn f(x: bool) -> i32 { if x { 1 } else { 2 } }");
+    }
+
