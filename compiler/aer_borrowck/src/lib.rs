@@ -325,3 +325,12 @@ fn double(x: i32) -> i32 { add(x, x) }
 fn quadruple(x: i32) -> i32 { double(double(x)) }
 "#);
     }
+
+    #[test]
+    fn clean_struct_field_access() {
+        assert_clean(r#"
+struct Point { x: f64, y: f64 }
+fn get_x(p: Point) -> f64 { p.x }
+"#);
+    }
+
