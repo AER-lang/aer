@@ -273,3 +273,9 @@ fn f() -> void {
     inc(&mut x);
 "#);
     }
+
+    #[test]
+    fn clean_arithmetic() {
+        assert_clean("fn f(a: i32, b: i32) -> i32 { a + b }");
+    }
+
