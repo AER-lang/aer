@@ -344,3 +344,13 @@ fn f() -> void {
 }
 "#);
     }
+
+    // ── Borrow checker — expected errors ──────────────────────────────────────
+
+    #[test]
+    fn error_mutate_immutable() {
+        assert_borrow_error(
+            r#"fn f() -> void { let x = 5; x = 10; }"#,
+            "not declared",
+        );
+    }
