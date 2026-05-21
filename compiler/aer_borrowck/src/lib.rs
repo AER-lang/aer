@@ -384,3 +384,19 @@ fn f() -> void {
             "already borrowed",
         );
     }
+
+    #[test]
+    fn error_shared_and_exclusive_borrow() {
+        assert_borrow_error(
+            r#"
+fn f() -> void {
+    let mut x = 5;
+    let r = &x;
+    let m = &mut x;
+    let _ = r;
+    let _ = m;
+}
+"#,
+            "already borrowed",
+        );
+    }
