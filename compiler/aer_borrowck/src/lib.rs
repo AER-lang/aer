@@ -368,3 +368,19 @@ fn f() -> void {
             "mutable",
         );
     }
+
+    #[test]
+    fn error_conflicting_exclusive_borrows() {
+        assert_borrow_error(
+            r#"
+fn f() -> void {
+    let mut x = 5;
+    let a = &mut x;
+    let b = &mut x;
+    let _ = a;
+    let _ = b;
+}
+"#,
+            "already borrowed",
+        );
+    }
