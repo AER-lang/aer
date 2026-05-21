@@ -400,3 +400,24 @@ fn f() -> void {
             "already borrowed",
         );
     }
+
+    // ── Full pipeline ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn full_program_clean() {
+        assert_clean(r#"
+fn add(a: i32, b: i32) -> i32 { a + b }
+
+struct Point { x: f64, y: f64 }
+
+fn main() -> void {
+    let x: i32 = 10;
+    let mut y = x + 1;
+    y += 5;
+    let z = add(x, y);
+    let r = &x;
+    let _ = r;
+}
+"#);
+    }
+}
