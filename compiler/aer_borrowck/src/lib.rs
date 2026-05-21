@@ -354,3 +354,17 @@ fn f() -> void {
             "not declared",
         );
     }
+
+    #[test]
+    fn error_ref_mut_of_immutable() {
+        assert_borrow_error(
+            r#"
+fn take_mut(r: &mut i32) -> void { }
+fn f() -> void {
+    let x = 5;
+    take_mut(&mut x);
+}
+"#,
+            "mutable",
+        );
+    }
