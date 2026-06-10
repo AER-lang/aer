@@ -177,3 +177,20 @@ fn stmt_def(stmt: &crate::cfg::Statement) -> Option<LocalId> {
         _ => None,
     }
 }
+
+/// Collect all locals used (read) by a statement into live
+fn stmt_uses(stmt: &crate::cfg::Statement, live: &mut LiveSet) {
+    match &stmt.kind {
+        StatementKind::Assign(lhs, rvalue) => {
+            // The lhs place root is written, but projected sub-places are read
+            if !lhs.proj.is_empty() {
+                live.insert(lhs.root); // e.g, p.x = … reads p
+            }
+            rvalue_uses(rvalue, live);
+        }
+        StatementKind::Drop(place) => {
+            live.insert(place.root);
+        }
+        StatementKind::StorageLive(_) | StatementKind::StorageDead(_) | StatementKind::Nop => {}
+    }
+}
