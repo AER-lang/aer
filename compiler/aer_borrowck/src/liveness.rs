@@ -212,3 +212,22 @@ fn operand_uses(op: &Operand, live: &mut LiveSet) {
         Operand::Const(_)   => {}
     }
 }
+
+fn collect_term_uses(term: &TerminatorKind, live: &mut LiveSet) {
+    match term {
+        TerminatorKind::Return => {
+            live.insert(LocalId::RETURN);
+        }
+        TerminatorKind::SwitchInt { discriminant, .. } => {
+            operand_uses(discriminant, live);
+        }
+        TerminatorKind::Call { func, args, .. } => {
+            operand_uses(func, live);
+            for a in args { operand_uses(a, live); }
+        }
+        TerminatorKind::DropAndGoto { place, .. } => {
+            live.insert(place.root);
+        }
+        TerminatorKind::Goto(_) | TerminatorKind::Unreachable => {}
+    }
+}
