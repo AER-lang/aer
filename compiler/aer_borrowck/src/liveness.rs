@@ -205,3 +205,10 @@ fn rvalue_uses(rv: &Rvalue, live: &mut LiveSet) {
         Rvalue::Aggregate(_, ops) => { for op in ops { operand_uses(op, live); } }
     }
 }
+
+fn operand_uses(op: &Operand, live: &mut LiveSet) {
+    match op {
+        Operand::Move(p)    => { live.insert(p.root); }
+        Operand::Const(_)   => {}
+    }
+}
