@@ -58,3 +58,45 @@ impl LiveSet {
         self.0.len() != before
     }
 }
+
+// ── Liveness result ───────────────────────────────────────────────────────────
+
+/// The liveness information for a single function
+pub struct LivenessResult {
+    /// live_in[block] ➔ The set of locals live on entry to each block
+    pub live_in: Vec<LiveSet>,
+    /// live_out[block] ➔ The set of locals live on exit from each block
+    pub live_out: Vec<LiveSet>,
+}
+
+impl LivenessResult {
+    /// Is local live just before statement stmt_idx of block?
+    ///
+    /// We recompute this on demand from live_out by scanning the block backwards
+    /// For the borrow checker's needs this is fast enough
+    pub fn is_live_before(&self, cfg: &Cfg, block: BlockId, stmt_idx: usize, local: LocalId) -> bool {
+        // Start from live_out, then kill/gen backwards through the block stmts
+        let mut live = self.live_out[block.0 as usize].clone();
+        let bb = cfg.block(block);
+
+        // Process terminator (if any) for uses
+        if let Some(term) = &bb.terminator {
+            collect_term_uses(&term.kind, &mut live);
+        }
+
+        // Walk statements in reverse until we hit stmt_idx
+        for i in (stmt_idx..bb.stmts.len()).rev() {
+            let stmt = &bb.stmts[i];
+            // Kill any definition.
+            if let Some(def_local) = stmt_def(stmt) {
+                live.remove(def_local);
+            }
+            // Gen any uses
+            stmt_uses(stmt, &mut live);
+            if i == stmt_idx {
+                return live.contains(local);
+            }
+        }
+        live.contains(local)
+    }
+}
