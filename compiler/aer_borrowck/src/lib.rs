@@ -9,7 +9,7 @@
 //! use borrowck::check_source;
 //!
 //! let result = check_source("fn f(x: i32) -> i32 { x }");
-//! assert!(result.errors.is_empty())
+//! assert!(result.errors.is_empty());
 
 pub mod borrowck;
 pub mod build;
@@ -277,8 +277,8 @@ fn f() -> void {
     }
 
     #[test]
-    fn clean_if_expression() {
-        assert_clean("fn f(x: bool) -> i32 { if x { 1 } else { 2 } }");
+    fn clean_arithmetic() {
+        assert_clean("fn f(a: i32, b: i32) -> i32 { a + b }");
     }
 
     #[test]
