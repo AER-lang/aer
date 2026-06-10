@@ -166,3 +166,14 @@ pub fn analyse(cfg: &Cfg) -> LivenessResult {
 
     LivenessResult { live_in, live_out }
 }
+
+// ── Use / def helpers ─────────────────────────────────────────────────────────
+
+/// The local defined (written) by a statement, if any
+fn stmt_def(stmt: &crate::cfg::Statement) -> Option<LocalId> {
+    match &stmt.kind {
+        StatementKind::Assign(place, _) if place.is_local() => Some(place.root),
+        StatementKind::StorageDead(id) => Some(*id),
+        _ => None,
+    }
+}
