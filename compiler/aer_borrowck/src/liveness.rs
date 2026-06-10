@@ -100,3 +100,69 @@ impl LivenessResult {
         live.contains(local)
     }
 }
+
+// ── Main analysis ─────────────────────────────────────────────────────────────
+
+/// Run backward liveness analysis over the CFG
+pub fn analyse(cfg: &Cfg) -> LivenessResult {
+    let n = cfg.blocks.len();
+    let preds = cfg.predecessors();
+
+    let mut live_in:  Vec<LiveSet> = vec![LiveSet::new(); n];
+    let mut live_out: Vec<LiveSet> = vec![LiveSet::new(); n];
+
+    // Iterate to fixed point
+    let mut changed = true;
+    while changed {
+        changed = false;
+
+        // Process blocks in reverse order (approximately reverse-post order)
+        for i in (0..n).rev() {
+            let bb = &cfg.blocks[i];
+            let bid = bb.id;
+
+            // live_out[B] = ⋃ live_in[S] for successors S
+            if let Some(term) = &bb.terminator {
+                for succ in term.kind.successors() {
+                    let succ_in = live_in[succ.0 as usize].clone();
+                    if live_out[i].union_with(&succ_in) {
+                        changed = true;
+                    }
+                }
+            }
+
+            // Compute new live_in[B] by scanning this block backwards
+            let mut live = live_out[i].clone();
+
+            // Terminator uses
+            if let Some(term) = &bb.terminator {
+                collect_term_uses(&term.kind, &mut live);
+            }
+
+            // Statements in reverse
+            for stmt in bb.stmts.iter().rev() {
+                // Kill the defined local
+                if let Some(def_local) = stmt_def(stmt) {
+                    live.remove(def_local);
+                }
+                // Gen uses
+                stmt_uses(stmt, &mut live);
+            }
+
+            // Parameter uses: params are always considered "used" at entry
+            // (They are live from function start)
+            for local in &cfg.locals {
+                if local.is_param {
+                    live.insert(local.id);
+                }
+            }
+
+            if live != live_in[i] {
+                live_in[i] = live;
+                changed = true;
+            }
+        }
+    }
+
+    LivenessResult { live_in, live_out }
+}
