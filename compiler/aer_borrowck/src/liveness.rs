@@ -194,3 +194,14 @@ fn stmt_uses(stmt: &crate::cfg::Statement, live: &mut LiveSet) {
         StatementKind::StorageLive(_) | StatementKind::StorageDead(_) | StatementKind::Nop => {}
     }
 }
+
+fn rvalue_uses(rv: &Rvalue, live: &mut LiveSet) {
+    match rv {
+        Rvalue::Use(op)           => operand_uses(op, live),
+        Rvalue::Ref(p)            => live.insert(p.root),
+        Rvalue::RefMut(p)         => live.insert(p.root),
+        Rvalue::BinaryOp(_, a, b) => { operand_uses(a, live); operand_uses(b, live); }
+        Rvalue::UnaryOp(_, a)     => operand_uses(a, live),
+        Rvalue::Aggregate(_, ops) => { for op in ops { operand_uses(op, live); } }
+    }
+}
