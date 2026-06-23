@@ -12,20 +12,20 @@ pub struct BorrowError {
 pub enum BorrowErrorKind {
     /// A value was used after it was moved
     UseAfterMove {
-        name:   String,
-        move_at: Span,
+        name:     String,
+        moved_at: Span,
     },
     /// A value was moved while it was borrowed
-    MoveWhiteBorrowed {
+    MoveWhileBorrowed {
         name:       String,
         borrow_span: Span,
     },
     /// An exclusive borrow (&mut) conflicts with an existing borrow
     ConflictingBorrow {
-        place:          String,
-        existing_kind:  BorrowKind,
-        existing_span:  Span,
-        new_kind:       BorrowKind,
+        place:           String,
+        existing_kind:   BorrowKind,
+        existing_span:   Span,
+        new_kind:        BorrowKind,
     },
     /// Tried to mutate an immutable binding
     MutationOfImmutable {
