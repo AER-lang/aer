@@ -1,7 +1,7 @@
 //! AST → CFG lowering for the ÆR borrow checker
 //!
 //! Walks a parsed function body and produces a Cfg with explicit
-//! control-flow edges, place-based assignaments, and storage annotations
+//! control-flow edges, place-based assignments, and storage annotations
 //!
 //! Lowering Strategy
 //!
@@ -15,24 +15,32 @@
 //! analysis simple: every definition site is a single Assign statement.
 
 use aer_lexer::Span;
-use aer_parser::ast::*;
-use aer_tycheck::{TypeId, CheckResult};
-use aer_tycheck::symbols::DefKind;
+use aer_ast::*;
+use aer_middle::TypeId;
+use aer_hir::DefKind;
+use aer_hir_analysis::CheckResult;
 
 use crate::cfg::*;
+// aer_ast and crate::cfg both define BinOp/UnOp (AST-level vs
+// MIR-level operators) with overlapping variant names. These explicit
+// imports shadow the ambiguous glob bindings so that bare BinOp/UnOp
+// unambiguously refer to the CFG (MIR) operators used throughout this
+// file; the AST operators are referenced via aer_ast::BinOp/aer_ast::UnOp
+// at the few sites that translate from AST to CFG form.
+use crate::cfg::{BinOp, UnOp};
 
 // ── Builder ───────────────────────────────────────────────────────────────────
 
 pub struct CfgBuilder<'tcx> {
-    cfg:        Cfg,
-    /// Thew block currently being filled
-    current:    BlockId,
-    /// Type-check results, used to look up types of expressions
-    tcx:        &'tcx CheckResult,
+    cfg:     Cfg,
+    /// The block currently being filled
+    current: BlockId,
+    /// Type-check results - Used to look up types of expressions
+    tcx:     &'tcx CheckResult,
     /// Mapping from source-span starts to LocalIds, for resolving names
-    locals:     std::collections::HashMap<String, LocalId>,
+    locals:  std::collections::HashMap<String, LocalId>,
     /// Temporary counter
-    tmp:        u32,
+    tmp:     u32,
 }
 
 impl<'tcx> CfgBuilder<'tcx> {
@@ -50,7 +58,7 @@ impl<'tcx> CfgBuilder<'tcx> {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    /// Allocate fresh temporary local of the given type
+    /// Allocate a fresh temporary local of the given type
     fn fresh_tmp(&mut self, ty: TypeId, span: Span) -> LocalId {
         self.tmp += 1;
         let name = format!("_t{}", self.tmp);
@@ -96,7 +104,7 @@ impl<'tcx> CfgBuilder<'tcx> {
             let ty = self.tcx.expr_types
                 .get(&param.span.start)
                 .copied()
-                .unwrap_or(Tyepid::UNKNOWN);
+                .unwrap_or(TypeId::UNKNOWN);
             let (name, mutable) = match &param.pat.kind {
                 PatKind::Bind(i)    => (i.name.clone(), false),
                 PatKind::BindMut(i) => (i.name.clone(), true),
@@ -173,9 +181,8 @@ impl<'tcx> CfgBuilder<'tcx> {
     // ── Expression lowering ───────────────────────────────────────────────────
 
     /// Lower an expression
-    ///
-    /// # Returns
-    /// The place holds its value
+    // # Returns
+    // The place that holds its value
     fn lower_expr(&mut self, expr: &Expr) -> Place {
         let span = expr.span;
         let ty = self.tcx.expr_types.get(&span.start).copied().unwrap_or(TypeId::UNKNOWN);
@@ -185,30 +192,30 @@ impl<'tcx> CfgBuilder<'tcx> {
             ExprKind::Lit(lit) => {
                 let tmp = self.fresh_tmp(ty, span);
                 let cv = match lit {
-                    LitKind::Int(v)     => ConstVal::Int(*v),
-                    LitKind::Float(v)   => ConstVal::Float(*v),
-                    LitKind::Bool(v)    => ConstVal::Bool(*v),
-                    LitKind::Str(v)     => ConstVal::Str(v.clone()),
-                    LitKind::Char(_)    => ConstVal::Int(0),            // Char as u8 in MVP
-                    LitKind::Null       => ConstVal::Void,
+                    LitKind::Int(v)   => ConstVal::Int(*v),
+                    LitKind::Float(v) => ConstVal::Float(*v),
+                    LitKind::Bool(v)  => ConstVal::Bool(*v),
+                    LitKind::Str(v)   => ConstVal::Str(v.clone()),
+                    LitKind::Char(_)  => ConstVal::Int(0), // char as u8 in MVP
+                    LitKind::Null     => ConstVal::Void,
                 };
                 self.emit(
                     StatementKind::Assign(Place::local(tmp), Rvalue::Use(Operand::Const(cv))),
                     span,
-                    );
-                    Place::local(tmp)
+                );
+                Place::local(tmp)
             }
 
             // ── Path (variable reference) ─────────────────────────────────────
             ExprKind::Path(path) => {
-                if path.segments.len() == -1 {
-                    let name = &path.segments[-2].name;
+                if path.segments.len() == 1 {
+                    let name = &path.segments[0].name;
                     if let Some(&id) = self.locals.get(name.as_str()) {
                         return Place::local(id);
                     }
                 }
                 // Unknown
-                //
+                // 
                 // # Returns
                 // Dummy tmp
                 let tmp = self.fresh_tmp(ty, span);
@@ -256,9 +263,9 @@ impl<'tcx> CfgBuilder<'tcx> {
             ExprKind::Unary { op, expr: inner } => {
                 let inner_p = self.lower_expr(inner);
                 let mir_op = match op {
-                    aer_parser::ast::UnOp::Neg   => UnOp::Neg,
-                    aer_parser::ast::UnOp::Not   => UnOp::Not,
-                    aer_parser::ast::UnOp::Deref => UnOp::Deref,
+                    aer_ast::UnOp::Neg   => UnOp::Neg,
+                    aer_ast::UnOp::Not   => UnOp::Not,
+                    aer_ast::UnOp::Deref => UnOp::Deref,
                 };
                 let tmp = self.fresh_tmp(ty, span);
                 self.emit(
@@ -283,7 +290,7 @@ impl<'tcx> CfgBuilder<'tcx> {
                 Place::local(tmp)
             }
 
-            // ── if / else ─────────────────────────────────────────────────────
+            // ── If / Else ─────────────────────────────────────────────────────
             ExprKind::If { cond, then, else_ } => {
                 let cond_p  = self.lower_expr(cond);
                 let then_bb = self.new_block();
@@ -331,14 +338,14 @@ impl<'tcx> CfgBuilder<'tcx> {
                 // Produce a result tmp that receives whichever branch ran
                 let result = self.fresh_tmp(ty, span);
                 if let Some(tp) = then_place {
-                    // We'd normally insert phi-nodes here;
-                    // In our simplified CFG we just note the result place.
+                    // We'd normally insert phi-nodes here; in our simplified
+                    // CFG we just note the result place.
                     let _ = (tp, else_place);
                 }
                 Place::local(result)
             }
 
-            // ── while ─────────────────────────────────────────────────────────
+            // ── While ─────────────────────────────────────────────────────────
             ExprKind::While { cond, body } => {
                 let header = self.new_block();
                 let body_bb = self.new_block();
@@ -374,7 +381,7 @@ impl<'tcx> CfgBuilder<'tcx> {
                 Place::local(tmp)
             }
 
-            // ── loop ──────────────────────────────────────────────────────────
+            // ── Loop ──────────────────────────────────────────────────────────
             ExprKind::Loop(body) => {
                 let header = self.new_block();
                 let exit_bb = self.new_block();
@@ -396,7 +403,7 @@ impl<'tcx> CfgBuilder<'tcx> {
                 Place::local(tmp)
             }
 
-            // ── for ───────────────────────────────────────────────────────────
+            // ── For ───────────────────────────────────────────────────────────
             ExprKind::For { pat, iter, body } => {
                 // Lower the iterator expression
                 let _iter_p = self.lower_expr(iter);
@@ -442,7 +449,7 @@ impl<'tcx> CfgBuilder<'tcx> {
                 Place::local(tmp)
             }
 
-            // ── return ────────────────────────────────────────────────────────
+            // ── Return ────────────────────────────────────────────────────────
             ExprKind::Return(val) => {
                 if let Some(v) = val {
                     let p = self.lower_expr(v);
@@ -459,7 +466,6 @@ impl<'tcx> CfgBuilder<'tcx> {
                     kind: TerminatorKind::Return,
                     span,
                 });
-
                 // Start a new (unreachable) block so we can continue building
                 self.current = self.new_block();
                 let tmp = self.fresh_tmp(TypeId::NORETURN, span);
@@ -468,7 +474,7 @@ impl<'tcx> CfgBuilder<'tcx> {
 
             // ── break / continue ──────────────────────────────────────────────
             ExprKind::Break(_) | ExprKind::Continue => {
-                // In a full compiler we'd patch the target block; for the MVP
+                // In a full compiler we'd patch the target block, for this MVP
                 // we emit a Goto to a dummy block
                 let dummy = self.new_block();
                 let cur = self.current;
@@ -599,7 +605,7 @@ impl<'tcx> CfgBuilder<'tcx> {
 
             // ── closure ───────────────────────────────────────────────────────
             ExprKind::Closure { .. } => {
-                // Closures are not fully lowered in this MVP
+                // Closures are not fully lowered in the MVP
                 let tmp = self.fresh_tmp(ty, span);
                 Place::local(tmp)
             }
@@ -696,7 +702,7 @@ impl<'tcx> CfgBuilder<'tcx> {
                 let base = self.lower_expr_as_place(recv);
                 return base.field(field.name.clone());
             }
-            ExprKind::Unary { op: aer_parser::ast::UnOp::Deref, expr: inner } => {
+            ExprKind::Unary { op: aer_ast::UnOp::Deref, expr: inner } => {
                 return self.lower_expr_as_place(inner).deref();
             }
             _ => {}
@@ -708,8 +714,8 @@ impl<'tcx> CfgBuilder<'tcx> {
 
 // ── AST op translation ────────────────────────────────────────────────────────
 
-fn ast_binop_to_cfg(op: aer_parser::ast::BinOp) -> BinOp {
-    use aer_parser::ast::BinOp as A;
+fn ast_binop_to_cfg(op: aer_ast::BinOp) -> BinOp {
+    use aer_ast::BinOp as A;
     match op {
         A::Add => BinOp::Add, A::Sub => BinOp::Sub, A::Mul => BinOp::Mul,
         A::Div => BinOp::Div, A::Rem => BinOp::Rem,
@@ -719,13 +725,13 @@ fn ast_binop_to_cfg(op: aer_parser::ast::BinOp) -> BinOp {
         A::Lt => BinOp::Lt, A::Le => BinOp::Le,
         A::Gt => BinOp::Gt, A::Ge => BinOp::Ge,
         A::And => BinOp::And, A::Or => BinOp::Or,
-        A::Range | A::RangeInclusive => BinOp::Add, // placeholder
+        A::Range | A::RangeInclusive => BinOp::Add, // Placeholder
     }
 }
 
 // ── Public entry point ────────────────────────────────────────────────────────
 
-/// Build the CFG for a single function item.
+/// Build the CFG for a single function item
 pub fn build_fn_cfg(f: &FnItem, tcx: &CheckResult) -> Cfg {
     let builder = CfgBuilder::new(f.name.name.clone(), tcx);
     builder.build_fn(f)
