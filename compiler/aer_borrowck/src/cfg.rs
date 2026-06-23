@@ -24,17 +24,17 @@
 //! Plane is kept minimal for this MVP, just the local and an optional chain of projections
 
 use aer_lexer::Span;
-use aer_tycheck::TypeId;
+use aer_middle::TypeId;
 
 // ── Place ─────────────────────────────────────────────────────────────────────
 
-/// A unique ID for a local variable (parameter or `let` binding) within a
+/// A unique ID for a local variable (parameter or let binding) within a
 /// single function body. IDs are allocated in declaration order
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct LocalId(pub u32);
 
 impl LocalId {
-    pub const RETURN: LocalId = LocalId(0); // Conventional slot for the return value
+    pub const RETURN: LocalId = LocalId(0); // conventional slot for the return value
 }
 
 impl std::fmt::Display for LocalId {
@@ -43,25 +43,24 @@ impl std::fmt::Display for LocalId {
     }
 }
 
-/// A projection step from one place to a sub-place.
+/// A projection step from one place to a sub-place
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Projection {
-    /// `.field_name` — struct field access.
+    /// .field_name - struct field access
     Field(String),
-    /// `[i]` — array/slice index (the index is not tracked precisely in MVP).
+    /// [i] - Array/slice index (the index is not tracked precisely in MVP)
     Index,
-    /// `*` — dereference.
+    /// "*" - Dereference.
     Deref,
 }
 
-/// A memory location: A root local plus zero or more projections
+/// A memory location: a root local plus zero or more projections
 ///
 /// Examples:
-///
-///     - x             → Place { root: id_of_x, proj: [] }
-///     - p.x           → Place { root: id_of_p, proj: [Field("x")] }
-///     - *ptr          → Place { root: id_of_ptr, proj: [Deref] }
-///     - arr[0].name   → Place { root: id_of_arr, proj: [Index, Field("name")] }
+///   - x           →  Place { root: id_of_x, proj: [] }
+///   - p.x         →  Place { root: id_of_p, proj: [Field("x")] }
+///   - *ptr        →  Place { root: id_of_ptr, proj: [Deref] }
+///   - arr[0].name →  Place { root: id_of_arr, proj: [Index, Field("name")] }
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Place {
     pub root: LocalId,
@@ -112,21 +111,21 @@ impl std::fmt::Display for Place {
 
 // ── Rvalue / Operand ──────────────────────────────────────────────────────────
 
-/// A simple value expression, the right-hand side of an assignment in the CFG
+/// A simple value expression. The right-hand side of an assignment in the CFG
 /// All complex expressions are decomposed into a sequence of these
 #[derive(Debug, Clone)]
 pub enum Rvalue {
     /// Use the value at a place (copy or move, depending on the type)
     Use(Operand),
-    /// &place, shared borrow
+    /// &place - Shared borrow
     Ref(Place),
-    /// &mut place, exclusive borrow
+    /// &mut place - Exclusive borrow
     RefMut(Place),
     /// A binary operation
     BinaryOp(BinOp, Operand, Operand),
     /// A unary operation
     UnaryOp(UnOp, Operand),
-    /// Aggregate construction: Struct, tuple, or array
+    /// Aggregate construction: struct, tuple, or array
     Aggregate(AggregateKind, Vec<Operand>),
 }
 
@@ -179,11 +178,11 @@ pub struct Statement {
 pub enum StatementKind {
     /// place = rvalue
     Assign(Place, Rvalue),
-    /// drop(place), explicit drop at end of scope
+    /// drop(place) - Explicit drop at end of scope
     Drop(Place),
-    /// A storage-live annotation: the local is now in scope
+    /// A storage-live annotation: The local is now in scope
     StorageLive(LocalId),
-    /// A storage-dead annotation: the local is going out of scope
+    /// A storage-dead annotation: The local is going out of scope
     StorageDead(LocalId),
     /// No-op, used as a placeholder after lowering errors
     Nop,
@@ -191,10 +190,11 @@ pub enum StatementKind {
 
 // ── Terminators ───────────────────────────────────────────────────────────────
 
-#[derive(Debug,  Clone)]
+/// The final instruction of a basic block, which names successor blocks
+#[derive(Debug, Clone)]
 pub struct Terminator {
     pub kind: TerminatorKind,
-    pub span: span,
+    pub span: Span,
 }
 
 #[derive(Debug, Clone)]
@@ -213,6 +213,7 @@ pub enum TerminatorKind {
     Return,
     /// Unreachable (after loop {} with no break, or noreturn calls)
     Unreachable,
+    /// A function call
     Call {
         func: Operand,
         args: Vec<Operand>,
@@ -259,7 +260,7 @@ impl std::fmt::Display for BlockId {
     }
 }
 
-/// A basic block: A straight-line sequence of statements and a terminator
+/// A basic block: a straight-line sequence of statements and a terminator
 #[derive(Debug, Clone)]
 pub struct BasicBlock {
     pub id: BlockId,
@@ -291,7 +292,7 @@ pub struct LocalDecl {
 
 /// The complete CFG for a single function body
 pub struct Cfg {
-    /// Function name, for diagnostics.
+    /// Function name, for diagnostics
     pub name: String,
     /// All local variable declarations, indexed by LocalId
     pub locals: Vec<LocalDecl>,
@@ -305,6 +306,7 @@ impl Cfg {
     }
 
     // ── Block construction ────────────────────────────────────────────────────
+
     /// Allocate a new (empty) basic block and return its ID
     pub fn new_block(&mut self) -> BlockId {
         let id = BlockId(self.blocks.len() as u32);
@@ -361,7 +363,7 @@ impl Cfg {
 
     // ── Predecessor map ───────────────────────────────────────────────────────
 
-    /// Build a predecessor map: For each block, the set of blocks that can
+    /// Build a predecessor map: for each block, the set of blocks that can
     /// jump to it. Used in dataflow analysis
     pub fn predecessors(&self) -> Vec<Vec<BlockId>> {
         let n = self.blocks.len();
