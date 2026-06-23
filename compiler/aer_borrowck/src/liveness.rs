@@ -1,14 +1,14 @@
-//! Liveness analysis for the ÆR NLL borrow checker.
+//! Liveness analysis for the ÆR NLL borrow checker (aer_borrowck)
 //!
 //! What is liveness?
 //!
 //! A variable is live at a program point if there exists a path from that
 //! point to a future use of the variable without an intervening kill
-//! (re-assignment or StorageDead)
+//! (re-assignment or StorageDead).
 //!
 //! Under NLL, a borrow is live only between its creation and its last use,
 //! not until the end of its lexical scope. This is precisely what the liveness
-//! analysis computes
+//! analysis computes.
 //!
 //! Algorithm
 //!
@@ -17,10 +17,12 @@
 //! live_out[B] = ⋃  live_in[S]   for each successor S of B
 //! live_in[B]  = use[B] ∪ (live_out[B] − def[B])
 //!
+//! We iterate until a fixed point (usually 2–3 passes for typical functions).
+//!
 //! Output
 //!
 //! A LivenessResult maps each (BlockId, statement index) to the set of
-//! LocalId s that are live before that statement
+//! LocalId's that are live before that statement.
 
 use std::collections::{HashMap, HashSet};
 
@@ -48,8 +50,7 @@ impl LiveSet {
         self.0.contains(&id)
     }
 
-    /// Union in-place
-    /// Returns true if the set changed
+    /// Union in-place; returns true if the set changed
     pub fn union_with(&mut self, other: &LiveSet) -> bool {
         let before = self.0.len();
         for &id in &other.0 {
@@ -59,21 +60,31 @@ impl LiveSet {
     }
 }
 
+// ── Program point ─────────────────────────────────────────────────────────────
+
+/// A point in the CFG: (block, statement index)
+/// Statement index = block.stmts.len() refers to the terminator
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct ProgramPoint {
+    pub block: BlockId,
+    pub stmt:  usize,
+}
+
 // ── Liveness result ───────────────────────────────────────────────────────────
 
 /// The liveness information for a single function
 pub struct LivenessResult {
-    /// live_in[block] ➔ The set of locals live on entry to each block
+    /// live_in[block] - The set of locals live on entry to each block
     pub live_in: Vec<LiveSet>,
-    /// live_out[block] ➔ The set of locals live on exit from each block
+    /// live_out[block] - The set of locals live on exit from each block
     pub live_out: Vec<LiveSet>,
 }
 
 impl LivenessResult {
     /// Is local live just before statement stmt_idx of block?
     ///
-    /// We recompute this on demand from live_out by scanning the block backwards
-    /// For the borrow checker's needs this is fast enough
+    /// We recompute this on demand from live_out by scanning the block
+    /// backwards; for the borrow checker's needs this is fast enough
     pub fn is_live_before(&self, cfg: &Cfg, block: BlockId, stmt_idx: usize, local: LocalId) -> bool {
         // Start from live_out, then kill/gen backwards through the block stmts
         let mut live = self.live_out[block.0 as usize].clone();
@@ -84,14 +95,14 @@ impl LivenessResult {
             collect_term_uses(&term.kind, &mut live);
         }
 
-        // Walk statements in reverse until we hit stmt_idx
+        // Walk statements in reverse until we hit stmt_idx.
         for i in (stmt_idx..bb.stmts.len()).rev() {
             let stmt = &bb.stmts[i];
             // Kill any definition.
             if let Some(def_local) = stmt_def(stmt) {
                 live.remove(def_local);
             }
-            // Gen any uses
+            // Gen any uses.
             stmt_uses(stmt, &mut live);
             if i == stmt_idx {
                 return live.contains(local);
@@ -116,7 +127,7 @@ pub fn analyse(cfg: &Cfg) -> LivenessResult {
     while changed {
         changed = false;
 
-        // Process blocks in reverse order (approximately reverse-post order)
+        // Process blocks in reverse order (approx. reverse-postorder)
         for i in (0..n).rev() {
             let bb = &cfg.blocks[i];
             let bid = bb.id;
@@ -134,7 +145,7 @@ pub fn analyse(cfg: &Cfg) -> LivenessResult {
             // Compute new live_in[B] by scanning this block backwards
             let mut live = live_out[i].clone();
 
-            // Terminator uses
+            // Terminator uses.
             if let Some(term) = &bb.terminator {
                 collect_term_uses(&term.kind, &mut live);
             }
@@ -145,12 +156,12 @@ pub fn analyse(cfg: &Cfg) -> LivenessResult {
                 if let Some(def_local) = stmt_def(stmt) {
                     live.remove(def_local);
                 }
-                // Gen uses
+                // Gen uses.
                 stmt_uses(stmt, &mut live);
             }
 
             // Parameter uses: params are always considered "used" at entry
-            // (They are live from function start)
+            // (they're live from function start)
             for local in &cfg.locals {
                 if local.is_param {
                     live.insert(local.id);
@@ -184,7 +195,7 @@ fn stmt_uses(stmt: &crate::cfg::Statement, live: &mut LiveSet) {
         StatementKind::Assign(lhs, rvalue) => {
             // The lhs place root is written, but projected sub-places are read
             if !lhs.proj.is_empty() {
-                live.insert(lhs.root); // e.g, p.x = … reads p
+                live.insert(lhs.root); // e.g. p.x = … reads p
             }
             rvalue_uses(rvalue, live);
         }
@@ -208,8 +219,8 @@ fn rvalue_uses(rv: &Rvalue, live: &mut LiveSet) {
 
 fn operand_uses(op: &Operand, live: &mut LiveSet) {
     match op {
-        Operand::Move(p)    => { live.insert(p.root); }
-        Operand::Const(_)   => {}
+        Operand::Move(p) => { live.insert(p.root); }
+        Operand::Const(_) => {}
     }
 }
 
