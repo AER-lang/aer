@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-aer_lexer   = { path = "../aer_lexer" }
-aer_parser  = { path = "../aer_parser" }
-aer_tycheck = { path = "../aer_tycheck" }
+aer_lexer        = { path = "../aer_lexer" }
+aer_ast          = { path = "../aer_ast" }
+aer_parse        = { path = "../aer_parse" }
+aer_middle       = { path = "../aer_middle" }
+aer_hir          = { path = "../aer_hir" }
+aer_hir_analysis = { path = "../aer_hir_analysis" }
