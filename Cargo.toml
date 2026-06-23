@@ -1,21 +1,28 @@
 [workspace]
 members = [
-    "library/core",
-    "library/alloc",
-    "library/std",
-    "library/collections",
-    "compiler/aer_lexer",
-    "compiler/aer_parser",
-    "compiler/aer_tycheck",
-    "compiler/aer_borrowck",
-    "compiler/aer_codegen",
-    "compiler/aer_driver",
+    # Listed in dependency order
+    "compiler/aer_lexer",        # tokenizer, zero deps
+    "compiler/aer_ast",          # AST node definitions
+    "compiler/aer_parse",        # recursive-descent parser
+    "compiler/aer_middle",       # TypeId / TypeInterner / DefId, zero deps
+    "compiler/aer_hir",          # symbol table & name resolution
+    "compiler/aer_hir_analysis", # type checker
+    "compiler/aer_borrowck",     # NLL borrow checker
+    "compiler/aer_codegen_llvm", # LLVM IR emission
+    "compiler/aer_driver",       # CLI pipeline orchestration (library)
+    "compiler/aer",              # thin binary, mirrors compiler/rustc
+
+    # Bootstrap tooling
+    "src/tools/aer-fmt",
 ]
 resolver = "2"
 
 [workspace.package]
 version = "0.1.0"
-edition = "2021"
-authors = ["Douglas Kitagawa", "ÆR Contributors"]
+edition = "2026"
+authors = ["Douglas Kitagawa", "The ÆR Contributors"]
 license = "MIT OR Apache-2.0"
-authors = ["The ÆR Project Contributors"]
+
+# NOTE: library/{core,alloc,std,collections} are ÆR-language (ae)
+# packages, not Rust crates, they are intentionally NOT workspace members
+# See library/README.md
