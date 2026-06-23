@@ -1,12 +1,14 @@
-//! borrowck - ÆR NLL borrow checker
+//! aer_borrowck - ÆR NLL borrow checker.
+//!
 //!
 //! Pipeline position
 //!
-//! Source → Lexer → Parser → TypeChecker → [BorrowChecker] → (LLVM Codegen)
+//! Source → aer_lexer → aer_parse → aer_hir_analysis
+//!        → [aer_borrowck] → aer_codegen_llvm
 //!
 //! Usage
 //!
-//! use borrowck::check_source;
+//! use aer_borrowck::check_source;
 //!
 //! let result = check_source("fn f(x: i32) -> i32 { x }");
 //! assert!(result.errors.is_empty());
@@ -22,8 +24,9 @@ pub use build::build_fn_cfg;
 pub use cfg::Cfg;
 pub use error::{BorrowError, BorrowErrorKind, BorrowKind};
 
-use aer_parser::{ast::ItemKind, parse_source};
-use aer_tycheck::check;
+use aer_ast::ItemKind;
+use aer_parse::parse_source;
+use aer_hir_analysis::check;
 
 // ── Public entry points ───────────────────────────────────────────────────────
 
@@ -180,7 +183,7 @@ mod tests {
         let ItemKind::Fn(ref f) = file.items[0].kind else { panic!() };
         let cfg = build_fn_cfg(f, &tcx);
         let live = liveness::analyse(&cfg);
-        // The parameter should be live at the entry block
+        // The param should be live at the entry block
         let param_id = cfg.locals.iter()
             .find(|l| l.is_param && l.name == "x")
             .map(|l| l.id);
@@ -200,12 +203,12 @@ mod tests {
         let cfg = build_fn_cfg(f, &tcx);
         let live = liveness::analyse(&cfg);
         // The return local (LocalId::RETURN) should be in live_in of a block
-        // only if it's actuall used. An empty body function may not use it
+        // only if it's actually used; an empty-body fn may not use it
         // Just verify the analysis runs without panic
         let _ = live;
     }
 
-    // ── Borrow checker — clean programs ───────────────────────────────────────
+    // ── Borrow checker - Clean programs ───────────────────────────────────────
 
     #[test]
     fn clean_empty_fn() {
@@ -220,15 +223,16 @@ mod tests {
     #[test]
     fn clean_shared_borrow() {
         assert_clean(r#"
-            fn f(x: i32) -> &i32 {
-                let r = &x;
-                r
-            }"#);
+fn f(x: i32) -> &i32 {
+    let r = &x;
+    r
+}
+"#);
     }
 
     #[test]
     fn clean_mut_borrow_after_use() {
-        // Under NLL: the shared borrow r ends at its last use (the call),
+        // Under NLL: The shared borrow r ends at its last use (the call),
         // so the mutation of x afterwards is valid
         assert_clean(r#"
 fn use_ref(r: &i32) -> i32 { 0 }
@@ -345,7 +349,7 @@ fn f() -> void {
 "#);
     }
 
-    // ── Borrow checker — expected errors ──────────────────────────────────────
+    // ── Borrow checker - Expected errors ──────────────────────────────────────
 
     #[test]
     fn error_mutate_immutable() {
