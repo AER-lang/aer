@@ -1,6 +1,6 @@
 //! ÆR NLL Borrow checker
 //!
-//! # Overview
+//! Overview
 //!
 //! After liveness analysis we know exactly where each variable is live.
 //! The borrow checker uses that information to enforce three rules:
@@ -16,7 +16,7 @@
 //! 3. Mutability - Only places rooted at mut locals can be assigned to
 //!     or borrowed as &mut.
 //!
-//! # NLL loan liveness
+//! NLL loan liveness
 //!
 //! A loan is created at each &place or &mut place rvalue. Under NLL,
 //! the loan is live from its creation point to the last use of the reference
@@ -43,22 +43,22 @@ use crate::liveness::{LivenessResult, LiveSet};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LoanId(pub u32);
 
-/// A borrow of a place, create by a &place or &mut place rvalue.
+/// A borrow of a place, created by a &place or &mut place rvalue.
 #[derive(Debug, Clone)]
 pub struct Loan {
-    pub id:         LoanId,
+    pub id:        LoanId,
     /// The place being borrowed.
-    pub place:      Place,
-    pub kind:       BorrowKind,
-    /// The local that holds the resulting reference (so we can track liveness).
-    pub ref_local:  LocalId,
+    pub place:     Place,
+    pub kind:      BorrowKind,
+    /// The local that holds the resulting reference (so we can track liveness)
+    pub ref_local: LocalId,
     /// Source location of the borrow expression.
-    pub span:       Span,
+    pub span:      Span,
 }
 
 // ── Move state ────────────────────────────────────────────────────────────────
 
-/// Tracks which locals have been moved-out-of and not yet re-initialized.
+/// Tracks which locals have been moved-out-of and not yet re-initialized
 #[derive(Debug, Clone, Default)]
 struct MoveState {
     moved: std::collections::HashSet<LocalId>,
@@ -78,7 +78,7 @@ impl MoveState {
     }
 
     fn merge(&self, other: &MoveState) -> MoveState {
-        // Conservative: A place is moved if it's moved on any incoming path.
+        // Conservative: A place is moved if it's moved on *any* incoming path
         let moved = self.moved.union(&other.moved).copied().collect();
         MoveState { moved }
     }
@@ -87,11 +87,11 @@ impl MoveState {
 // ── Borrow checker ────────────────────────────────────────────────────────────
 
 pub struct BorrowChecker<'a> {
-    cfg:        &'a Cfg,
-    liveness:   &'a LivenessResult,
+    cfg:       &'a Cfg,
+    liveness:  &'a LivenessResult,
     /// All loans created in this function
-    loans:      Vec<Loan>,
-    errors:      Vec<BorrowError>,
+    loans:     Vec<Loan>,
+    errors:    Vec<BorrowError>,
 }
 
 impl<'a> BorrowChecker<'a> {
@@ -106,9 +106,9 @@ impl<'a> BorrowChecker<'a> {
 
     // ── Entry point ───────────────────────────────────────────────────────────
 
-    /// Run the full borrow check pass and return any errors found.
+    /// Run the full borrow check pass and return any errors found
     pub fn check(mut self) -> Vec<BorrowError> {
-        // First pass: collect all loans (created by Ref / RefMut rvalues).
+        // First pass: collect all loans (created by Ref / RefMut rvalues)
         self.collect_loans();
 
         // Second pass: check each block for violations.
@@ -116,7 +116,7 @@ impl<'a> BorrowChecker<'a> {
             vec![None; self.cfg.blocks.len()];
         move_state_at_entry[BlockId::ENTRY.0 as usize] = Some(MoveState::default());
 
-        // Process in a simple topological order (entry first, then BFS)
+        // Process in a simple topological order (entry first, then BFS).
         let mut worklist: Vec<BlockId> = vec![BlockId::ENTRY];
         let mut visited: std::collections::HashSet<BlockId> = std::collections::HashSet::new();
 
@@ -137,7 +137,7 @@ impl<'a> BorrowChecker<'a> {
             if let Some(term) = &self.cfg.block(bid).terminator {
                 for succ in term.kind.successors() {
                     let merged = match &move_state_at_entry[succ.0 as usize] {
-                        Some(existing) => existing merge(&exit_state),
+                        Some(existing) => existing.merge(&exit_state),
                         None => exit_state.clone(),
                     };
                     move_state_at_entry[succ.0 as usize] = Some(merged);
@@ -226,7 +226,7 @@ impl<'a> BorrowChecker<'a> {
                 // Check the rvalue for moves / uses of moved values
                 self.check_rvalue(rvalue, active, state, stmt.span);
 
-                // Check that the lhs is mutable (if it's a direct local)
+                // Check that the lhs is mutable (if it's a direct local).
                 if lhs.is_local() {
                     self.check_place_mutability(lhs, stmt.span);
                 }
@@ -292,7 +292,7 @@ impl<'a> BorrowChecker<'a> {
                 self.check_operand_move(op, active, state, span);
             }
             Rvalue::Ref(place) => {
-                // Shared borrow — check no exclusive loan is active on a conflicting place.
+                // Shared borrow - Check no exclusive loan is active on a conflicting place.
                 self.check_use_of_place(place, state, span);
                 for loan in active {
                     if loan.kind == BorrowKind::Exclusive && self.places_conflict(place, &loan.place) {
@@ -309,7 +309,7 @@ impl<'a> BorrowChecker<'a> {
                 }
             }
             Rvalue::RefMut(place) => {
-                // Exclusive borrow — check the place is mutable and no other loan is active.
+                // Exclusive borrow - Check the place is mutable and no other loan is active.
                 self.check_place_mutability(place, span);
                 self.check_use_of_place(place, state, span);
                 for loan in active {
@@ -368,7 +368,7 @@ impl<'a> BorrowChecker<'a> {
 
                 // Mark as moved (for non-Copy types)
                 // As this is currently a MVP we are treating all non-primitive locals as moved
-                // on use
+                //  on use
                 // A Copy analysis pass would refine this
                 if place.is_local() {
                     let local = self.cfg.local(place.root);
@@ -444,8 +444,8 @@ impl<'a> BorrowChecker<'a> {
     fn check_place_mutability(&mut self, place: &Place, span: Span) {
         let local = self.cfg.local(place.root);
         if !local.mutable && !local.is_param {
-            // Params are not mutable by default but that's a distinct error.
-            // Only emit for explicit immutable lets.
+            // Params are not mutable by default but that's a distinct error
+            // Only emit for explicit immutable lets
             if !local.name.starts_with("_t") {
                 self.errors.push(BorrowError::new(
                     span,
@@ -470,9 +470,10 @@ impl<'a> BorrowChecker<'a> {
 
 // ── Copy type heuristic ───────────────────────────────────────────────────────
 
-/// Returns true for types that implement Copy - They don't need to be
-/// tracked for moves. In this MVP stage we use a conservative approximation:
-/// all primitive types are Copy
-fn is_copy_type(ty: aer_tycheck::TypeId) -> bool {
-    ty.is_integer() || ty.is_float() || ty == aer_tycheck::TypeId::BOOL
+/// Returns true for types that implement Copy
+/// They don't need to be tracked for moves.
+/// In this MVP stage we use a conservative approximation:
+/// All primitive types are Copy
+fn is_copy_type(ty: aer_middle::TypeId) -> bool {
+    ty.is_integer() || ty.is_float() || ty == aer_middle::TypeId::BOOL
 }
