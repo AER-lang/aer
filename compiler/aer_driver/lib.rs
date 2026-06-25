@@ -171,3 +171,27 @@ fn cmd_lex(src: &str) -> Result<(), Vec<String>> {
     }
     Err(errors.iter().map(|e| e.to_string()).collect())
 }
+
+/// aer parse <file.ae> - Parse and print a summary of the AST
+fn cmd_parse(src: &str) -> Result<(), Vec<String>> {
+    let (file, errors) = parse_source(src);
+
+    println!("Parsed {} top-level item(s):", file.items.len());
+    for item in &file.items {
+        let kind = match &item.kind {
+            ItemKind::Fn(f) => format!("fn          (vis={:?}, unsafe={})", f.vis, f.is_unsafe),
+            ItemKind::Struct(s) => format!("struct      ({} field(s))", s.fields.len()),
+            ItemKind::Enum(e) => format!("enum        ({} variant(s))", e.variants.len()),
+            ItemKind::Use(_) => "use".to_string(),
+            ItemKind::Const(_) => "const".to_string(),
+            ItemKind::Impl(_) => "impl".to_string(),
+            ItemKind::Trait(_) => "trait".to_string(),
+        };
+        println!("  [{:>6}] {kind}", item.span);
+    }
+
+    if errors.is_empty() {
+        return Ok(());
+    }
+    Err(errors)
+}
