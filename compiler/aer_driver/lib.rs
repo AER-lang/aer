@@ -219,3 +219,11 @@ fn cmd_borrow(src: &str) -> Result<(), Vec<String>> {
     }
     Err(errors)
 }
+
+/// aer compile <file.ae> - Compile to a native object file (<file>.o)
+fn cmd_compile(input_path: &str, src: &str) -> Result<(), Vec<String>> {
+    let output_path = input_path.replace(".ae", ".o");
+    compile_to_object(src, &output_path, OptimizationLevel::Default)?;
+    println!("✔️ Compiled ➔ {output_path}");
+    Ok(())
+}
