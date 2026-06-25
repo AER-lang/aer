@@ -96,3 +96,38 @@ fn parse_args(args: &[String]) -> Result<Invocation, String> {
 
     Ok(Invocation { command, path: path.clone() })
 }
+
+// ── Entry point ───────────────────────────────────────────────────────────────
+
+/// Run the ÆR compiler driver
+///
+/// args matches std::env::args(): index 0 is the program name, index 1
+/// the subcommand, index 2 the source file path. Returns the process exit
+/// code, the caller is responsible for passing it to
+/// std::process::exit/returning it from main
+pub fn run(args: &[String]) -> ExitCode {
+    report(try_run(args))
+}
+
+/// The testable core of [run]: parses arguments, reads the source file,
+/// and dispatches to the requested subcommand
+///
+/// Kept separate from [run] so tests can inspect the Result directly
+/// without depending on ExitCode equality (not available on all
+/// supported toolchains)
+fn try_run(args: &[String]) -> Result<(), Vec<String>> {
+    let invocation = parse_args(args).map_err(|message| vec![message])?;
+
+    let src = std::fs::read_to_string(&invocation.path).map_err(|e| {
+        vec![format!("error: could not read '{}': {e}", invocation.path)]
+    })?;
+
+    match invocation.command {
+        Command::Lex => cmd_lex(&src),
+        Command::Parse => cmd_parse(&src),
+        Command::Check => cmd_check(&src),
+        Command::Borrow => cmd_borrow(&src),
+        Command::EmitIr => cmd_emit_ir(&src),
+        Command::Compile => cmd_compile(&invocation.path, &src),
+    }
+}
