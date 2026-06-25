@@ -195,3 +195,15 @@ fn cmd_parse(src: &str) -> Result<(), Vec<String>> {
     }
     Err(errors)
 }
+
+/// aer check <file.ae> - Run the type checker only
+fn cmd_check(src: &str) -> Result<(), Vec<String>> {
+    let result = check_source(src);
+    let errors = result.errors();
+
+    if errors.is_empty() {
+        println!("✓ No type errors.");
+        return Ok(());
+    }
+    Err(errors)
+}
