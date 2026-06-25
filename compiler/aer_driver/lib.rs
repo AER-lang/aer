@@ -148,3 +148,26 @@ fn report(result: Result<(), Vec<String>>) -> ExitCode {
     eprintln!("\n{} error(s).", errors.len());
     ExitCode::FAILURE
 }
+
+// ── Subcommands ───────────────────────────────────────────────────────────────
+
+/// aer lex <file.ae> - Tokenize and print the token stream
+fn cmd_lex(src: &str) -> Result<(), Vec<String>> {
+    let (tokens, errors) = Lexer::new(src).tokenize();
+
+    println!("{:<10} {:<22} {}", "SPAN", "KIND", "TEXT");
+    println!("{}", "-".repeat(64));
+    for tok in &tokens {
+        if matches!(tok.kind, TokenKind::Eof) {
+            println!("{:<10} {:<22}", tok.span, "<eof>");
+            break;
+        }
+        let text = tok.span.slice(src);
+        println!("{:<10} {:<22} {:?}", tok.span, tok.kind.description(), text);
+    }
+
+    if errors.is_empty() {
+        return Ok(());
+    }
+    Err(errors.iter().map(|e| e.to_string()).collect())
+}
