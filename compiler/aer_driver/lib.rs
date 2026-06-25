@@ -46,3 +46,28 @@ struct Invocation {
     command: Command,
     path: String,
 }
+
+/// The subcommand requested on the command line
+enum Command {
+    Lex,
+    Parse,
+    Check,
+    Borrow,
+    EmitIr,
+    Compile,
+}
+
+impl Command {
+    /// Parse a subcommand name, or None if it isn't recognized
+    fn parse(name: &str) -> Option<Command> {
+        match name {
+            "lex" => Some(Command::Lex),
+            "parse" => Some(Command::Parse),
+            "check" => Some(Command::Check),
+            "borrow" => Some(Command::Borrow),
+            "emit-ir" => Some(Command::EmitIr),
+            "compile" => Some(Command::Compile),
+            _ => None,
+        }
+    }
+}
