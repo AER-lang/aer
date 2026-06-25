@@ -207,3 +207,15 @@ fn cmd_check(src: &str) -> Result<(), Vec<String>> {
     }
     Err(errors)
 }
+
+/// aer borrow <file.ae> - Run the type checker and borrow checker
+fn cmd_borrow(src: &str) -> Result<(), Vec<String>> {
+    let result = borrow_check_source(src);
+    let errors = result.all_errors();
+
+    if errors.is_empty() {
+        println!("✓ No errors.");
+        return Ok(());
+    }
+    Err(errors)
+}
