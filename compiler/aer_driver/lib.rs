@@ -131,3 +131,20 @@ fn try_run(args: &[String]) -> Result<(), Vec<String>> {
         Command::Compile => cmd_compile(&invocation.path, &src),
     }
 }
+
+/// Translate a subcommand result into an exit code, printing any errors
+///
+/// This is the single place where compiler diagnostics are written to
+/// stderr, every cmd_* function returns its errors as data rather than
+/// printing them directly
+fn report(result: Result<(), Vec<String>>) -> ExitCode {
+    let Err(errors) = result else {
+        return ExitCode::SUCCESS;
+    };
+
+    for error in &errors {
+        eprintln!("{error}");
+    }
+    eprintln!("\n{} error(s).", errors.len());
+    ExitCode::FAILURE
+}
