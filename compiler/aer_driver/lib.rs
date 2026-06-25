@@ -77,3 +77,22 @@ impl Command {
 fn usage() -> String {
     "Usage: aer <lex|parse|check|borrow|emit-ir|compile> <file.ae>".to_string()
 }
+
+/// Parse args into an [Invocation], or an error message describing why
+/// the arguments were invalid.
+fn parse_args(args: &[String]) -> Result<Invocation, String> {
+    let Some(command_name) = args.get(1) else {
+        return Err(usage());
+    };
+    let Some(path) = args.get(2) else {
+        return Err(usage());
+    };
+    let Some(command) = Command::parse(command_name) else {
+        return Err(format!(
+            "error: unknown subcommand '{command_name}'.\n{}",
+            usage()
+        ));
+    };
+
+    Ok(Invocation { command, path: path.clone() })
+}
