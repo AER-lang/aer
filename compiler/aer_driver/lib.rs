@@ -71,3 +71,9 @@ impl Command {
         }
     }
 }
+
+/// The one-line usage string. Shared between the "missing arguments" and
+/// "unknown subcommand" error paths so the two can never drift apart
+fn usage() -> String {
+    "Usage: aer <lex|parse|check|borrow|emit-ir|compile> <file.ae>".to_string()
+}
