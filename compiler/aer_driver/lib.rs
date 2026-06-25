@@ -227,3 +227,63 @@ fn cmd_compile(input_path: &str, src: &str) -> Result<(), Vec<String>> {
     println!("✔️ Compiled ➔ {output_path}");
     Ok(())
 }
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_args_requires_command_and_path() {
+        let args = vec!["aer".to_string()];
+        assert!(parse_args(&args).is_err());
+
+        let args = vec!["aer".to_string(), "check".to_string()];
+        assert!(parse_args(&args).is_err());
+    }
+
+    #[test]
+    fn parse_args_rejects_unknown_command() {
+        let args = vec!["aer".to_string(), "frobnicate".to_string(), "f.ae".to_string()];
+        let err = parse_args(&args).unwrap_err();
+        assert!(err.contains("unknown subcommand"));
+        assert!(err.contains("frobnicate"));
+    }
+
+    #[test]
+    fn parse_args_accepts_every_known_command() {
+        for name in ["lex", "parse", "check", "borrow", "emit-ir", "compile"] {
+            let args = vec!["aer".to_string(), name.to_string(), "f.ae".to_string()];
+            assert!(parse_args(&args).is_ok(), "expected '{name}' to be recognized");
+        }
+    }
+
+    #[test]
+    fn cmd_lex_reports_no_errors_for_valid_source() {
+        assert!(cmd_lex("fn main() -> void { }").is_ok());
+    }
+
+    #[test]
+    fn cmd_check_reports_type_errors() {
+        let result = cmd_check("fn f() -> i32 { true }");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn cmd_check_clean_program() {
+        assert!(cmd_check("fn add(a: i32, b: i32) -> i32 { a + b }").is_ok());
+    }
+
+    #[test]
+    fn run_reports_failure_for_missing_file() {
+        let args = vec!["aer".to_string(), "check".to_string(), "/no/such/file.ae".to_string()];
+        assert!(try_run(&args).is_err());
+    }
+
+    #[test]
+    fn run_reports_failure_for_bad_invocation() {
+        let args = vec!["aer".to_string()];
+        assert!(try_run(&args).is_err());
+    }
+}
