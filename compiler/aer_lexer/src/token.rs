@@ -372,3 +372,25 @@ impl TokenKind {
         }
     }
 }
+
+// ── Token ────────────────────────────────────────────────────────────────────
+
+/// A single lexed token: Its kind plus the source location it came from
+#[derive(Debug, Clone, PartialEq)]
+pub struct Token {
+    pub kind: TokenKind,
+    pub span: Span,
+}
+
+impl Token {
+    #[inline]
+    pub fn new(kind: TokenKind, span: Span) -> Self {
+        Self { kind, span }
+    }
+
+    /// Convenience: Is this the end-of-file sentinel?
+    #[inline]
+    pub fn is_eof(&self) -> bool {
+        matches!(self.kind, TokenKind::Eof)
+    }
+}
