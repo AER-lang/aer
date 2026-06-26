@@ -12,3 +12,32 @@ pub enum Severity {
     /// The lexer recovered by emitting TokenKind::Unknown or a partial token
     Error,
 }
+
+/// A diagnostic message produced during lexing
+///
+/// The lexer never panics: It always produces some token stream and
+/// accumulates errors here. The driver decides whether to abort or continue
+#[derive(Debug, Clone, PartialEq)]
+pub struct LexError {
+    pub severity: Severity,
+    pub span: Span,
+    pub message: String,
+}
+
+impl LexError {
+    pub fn error(span: Span, message: impl Into<String>) -> Self {
+        Self {
+            severity: Severity::Error,
+            span,
+            message: message.into(),
+        }
+    }
+
+    pub fn warning(span: Span, message: impl Into<String>) -> Self {
+        Self {
+            severity: Severity::Warning,
+            span,
+            message: message.into(),
+        }
+    }
+}
