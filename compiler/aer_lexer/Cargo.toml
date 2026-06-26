@@ -1,0 +1,6 @@
+[package]
+name    = "aer_lexer"
+version.workspace = true
+edition.workspace = true
+
+# Zero external dependencies, hand-written lexer.
