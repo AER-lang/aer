@@ -156,4 +156,31 @@ mod tests {
         assert!(matches!(k[1], TokenKind::FloatLit(v) if (v - 2.5e-3).abs() < 1e-10));
         assert!(matches!(k[2], TokenKind::FloatLit(v) if (v - 1e6).abs() < 1.0));
     }
+
+    // ── String literals ───────────────────────────────────────────────────────
+
+    #[test]
+    fn simple_string() {
+        let k = kinds(r#""hello""#);
+        assert_eq!(k, vec![TokenKind::StringLit("hello".into()), TokenKind::Eof]);
+    }
+
+    #[test]
+    fn string_escapes() {
+        let k = kinds(r#""\n\t\\\"""#);
+        assert_eq!(k, vec![TokenKind::StringLit("\n\t\\\"".into()), TokenKind::Eof]);
+    }
+
+    #[test]
+    fn string_unicode_escape() {
+        let k = kinds(r#""\u{1F600}""#);
+        assert_eq!(k, vec![TokenKind::StringLit("😀".into()), TokenKind::Eof]);
+    }
+
+    #[test]
+    fn unterminated_string() {
+        let (_tokens, errors) = lex(r#""oops"#);
+        assert!(!errors.is_empty());
+        assert!(errors[0].message.contains("unterminated string literal"));
+    }
 }
