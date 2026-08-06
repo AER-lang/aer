@@ -32,4 +32,45 @@ mod tests {
         assert!(errors.is_empty(), "unexpected lex errors: {:?}", errors);
         tokens.into_iter().map(|t| t.kind).collect()
     }
+
+    // ── Whitespace & comments ─────────────────────────────────────────────────
+
+    #[test]
+    fn empty_input() {
+        let (tokens, errors) = lex("");
+        assert!(errors.is_empty());
+        assert_eq!(tokens.len(), 1);
+        assert!(tokens[0].is_eof());
+    }
+
+    #[test]
+    fn only_whitespace() {
+        let k = kinds("   \t\n  ");
+        assert_eq!(k, vec![TokenKind::Eof]);
+    }
+
+    #[test]
+    fn line_comment_skipped() {
+        let k = kinds("// this is a comment\n42");
+        assert_eq!(k, vec![TokenKind::IntLit(42), TokenKind::Eof]);
+    }
+
+    #[test]
+    fn block_comment_skipped() {
+        let k = kinds("/* hello */ 99");
+        assert_eq!(k, vec![TokenKind::IntLit(99), TokenKind::Eof]);
+    }
+
+    #[test]
+    fn block_comment_multiline() {
+        let k = kinds("/* line1\n   line2\n */ true");
+        assert_eq!(k, vec![TokenKind::KwTrue, TokenKind::Eof]);
+    }
+
+    #[test]
+    fn unterminated_block_comment() {
+        let (_tokens, errors) = lex("/* oops");
+        assert!(!errors.is_empty());
+        assert!(errors[0].message.contains("unterminated block comment"));
+    }
 }
