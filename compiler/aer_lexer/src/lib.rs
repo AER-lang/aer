@@ -335,4 +335,42 @@ mod tests {
         assert_eq!(tokens[0].span.slice(src), "fn");
         assert_eq!(tokens[1].span.slice(src), "foo");
     }
+
+    // ── Real ÆR snippet ───────────────────────────────────────────────────
+
+    #[test]
+    fn full_function() {
+        let src = "fn add(a: i32, b: i32) -> i32 { a + b }";
+        let (tokens, errors) = lex(src);
+        assert!(errors.is_empty(), "{:?}", errors);
+        let kinds: Vec<_> = tokens.iter().map(|t| &t.kind).collect();
+        assert!(matches!(kinds[0], TokenKind::KwFn));
+        assert!(matches!(kinds[1], TokenKind::Ident));
+        assert!(matches!(kinds[2], TokenKind::LParen));
+    }
+
+    #[test]
+    fn struct_definition() {
+        let src = "struct Point { x: f64, y: f64 }";
+        let (tokens, errors) = lex(src);
+        assert!(errors.is_empty());
+        assert!(matches!(tokens[0].kind, TokenKind::KwStruct));
+    }
+
+    #[test]
+    fn error_recovery_continues() {
+        // § is not a valid ÆR character, but the lexer should recover
+        // And then continue tokenizing the rest
+        let src = "let § x = 42";
+        let (tokens, errors) = lex(src);
+        assert!(!errors.is_empty(), "expected an error for §");
+        // Should still have tokenized let, x, =, 42, eof
+        let valid_kinds: Vec<_> = tokens.iter()
+            .filter(|t| !matches!(t.kind, TokenKind::Unknown))
+            .map(|t| &t.kind)
+            .collect();
+        assert!(valid_kinds.iter().any(|k| matches!(k, TokenKind::KwLet)));
+        assert!(valid_kinds.iter().any(|k| matches!(k, TokenKind::IntLit(42))));
+    }
+}
 }
