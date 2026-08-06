@@ -73,4 +73,69 @@ mod tests {
         assert!(!errors.is_empty());
         assert!(errors[0].message.contains("unterminated block comment"));
     }
+
+    // ── Integer literals ──────────────────────────────────────────────────────
+
+    #[test]
+    fn decimal_int() {
+        let k = kinds("0 1 42 999");
+        assert_eq!(k, vec![
+            TokenKind::IntLit(0),
+            TokenKind::IntLit(1),
+            TokenKind::IntLit(42),
+            TokenKind::IntLit(999),
+            TokenKind::Eof,
+        ]);
+    }
+
+    #[test]
+    fn hex_int() {
+        let k = kinds("0xFF 0x0 0xDEAD_BEEF");
+        assert_eq!(k, vec![
+            TokenKind::IntLit(255),
+            TokenKind::IntLit(0),
+            TokenKind::IntLit(0xDEAD_BEEF),
+            TokenKind::Eof,
+        ]);
+    }
+
+    #[test]
+    fn binary_int() {
+        let k = kinds("0b1010 0b0 0b1111_0000");
+        assert_eq!(k, vec![
+            TokenKind::IntLit(0b1010),
+            TokenKind::IntLit(0),
+            TokenKind::IntLit(0b1111_0000),
+            TokenKind::Eof,
+        ]);
+    }
+
+    #[test]
+    fn octal_int() {
+        let k = kinds("0o777 0o0 0o644");
+        assert_eq!(k, vec![
+            TokenKind::IntLit(0o777),
+            TokenKind::IntLit(0),
+            TokenKind::IntLit(0o644),
+            TokenKind::Eof,
+        ]);
+    }
+
+    #[test]
+    fn int_with_suffix() {
+        // Suffix is consumed but doesn't change the kind
+        let k = kinds("42i32 100u64 0usize");
+        assert_eq!(k, vec![
+            TokenKind::IntLit(42),
+            TokenKind::IntLit(100),
+            TokenKind::IntLit(0),
+            TokenKind::Eof,
+        ]);
+    }
+
+    #[test]
+    fn int_underscore_separator() {
+        let k = kinds("1_000_000");
+        assert_eq!(k, vec![TokenKind::IntLit(1_000_000), TokenKind::Eof]);
+    }
 }
