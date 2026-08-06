@@ -138,4 +138,22 @@ mod tests {
         let k = kinds("1_000_000");
         assert_eq!(k, vec![TokenKind::IntLit(1_000_000), TokenKind::Eof]);
     }
+
+    // ── Float literals ────────────────────────────────────────────────────────
+
+    #[test]
+    fn basic_float() {
+        let k = kinds("3.14 0.0 1.0");
+        assert!(matches!(k[0], TokenKind::FloatLit(v) if (v - 3.14).abs() < 1e-10));
+        assert!(matches!(k[1], TokenKind::FloatLit(v) if v == 0.0));
+        assert!(matches!(k[2], TokenKind::FloatLit(v) if v == 1.0));
+    }
+
+    #[test]
+    fn float_with_exponent() {
+        let k = kinds("1e10 2.5e-3 1E+6");
+        assert!(matches!(k[0], TokenKind::FloatLit(v) if (v - 1e10).abs() < 1.0));
+        assert!(matches!(k[1], TokenKind::FloatLit(v) if (v - 2.5e-3).abs() < 1e-10));
+        assert!(matches!(k[2], TokenKind::FloatLit(v) if (v - 1e6).abs() < 1.0));
+    }
 }
