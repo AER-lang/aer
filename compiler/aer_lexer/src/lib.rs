@@ -317,4 +317,22 @@ mod tests {
             TokenKind::Eof,
         ]);
     }
+
+    // ── Span accuracy ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn span_simple() {
+        let src = "let x";
+        let (tokens, _) = lex(src);
+        assert_eq!(tokens[0].span, Span::new(0, 3)); // "let"
+        assert_eq!(tokens[1].span, Span::new(4, 5)); // "x"
+    }
+
+    #[test]
+    fn span_slice() {
+        let src = "fn foo";
+        let (tokens, _) = lex(src);
+        assert_eq!(tokens[0].span.slice(src), "fn");
+        assert_eq!(tokens[1].span.slice(src), "foo");
+    }
 }
