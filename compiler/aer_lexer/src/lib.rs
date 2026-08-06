@@ -183,4 +183,138 @@ mod tests {
         assert!(!errors.is_empty());
         assert!(errors[0].message.contains("unterminated string literal"));
     }
+
+    // ── Keywords ──────────────────────────────────────────────────────────────
+
+    #[test]
+    fn keywords_recognized() {
+        let k = kinds("fn let mut struct enum if else while for loop return");
+        assert_eq!(k, vec![
+            TokenKind::KwFn,
+            TokenKind::KwLet,
+            TokenKind::KwMut,
+            TokenKind::KwStruct,
+            TokenKind::KwEnum,
+            TokenKind::KwIf,
+            TokenKind::KwElse,
+            TokenKind::KwWhile,
+            TokenKind::KwFor,
+            TokenKind::KwLoop,
+            TokenKind::KwReturn,
+            TokenKind::Eof,
+        ]);
+    }
+
+    #[test]
+    fn type_keywords() {
+        let k = kinds("i32 u64 f64 bool usize isize void noreturn");
+        assert_eq!(k, vec![
+            TokenKind::KwI32,
+            TokenKind::KwU64,
+            TokenKind::KwF64,
+            TokenKind::KwBool,
+            TokenKind::KwUsize,
+            TokenKind::KwIsize,
+            TokenKind::KwVoid,
+            TokenKind::KwNoreturn,
+            TokenKind::Eof,
+        ]);
+    }
+
+    #[test]
+    fn bool_literals() {
+        // True/False are keywords, not identifiers
+        let k = kinds("true false");
+        assert_eq!(k, vec![TokenKind::KwTrue, TokenKind::KwFalse, TokenKind::Eof]);
+    }
+
+    #[test]
+    fn identifier_not_keyword() {
+        let k = kinds("foo _bar Point my_fn");
+        assert_eq!(k, vec![
+            TokenKind::Ident,
+            TokenKind::Ident,
+            TokenKind::Ident,
+            TokenKind::Ident,
+            TokenKind::Eof,
+        ]);
+    }
+
+    #[test]
+    fn keyword_prefix_is_ident() {
+        // `fnx` is NOT the keyword `fn` — it's an identifier
+        let k = kinds("fnx lets mutate");
+        assert_eq!(k, vec![
+            TokenKind::Ident,
+            TokenKind::Ident,
+            TokenKind::Ident,
+            TokenKind::Eof,
+        ]);
+    }
+
+    // ── Operators & punctuation ───────────────────────────────────────────────
+
+    #[test]
+    fn punctuation() {
+        let k = kinds("( ) [ ] { } , ; :");
+        assert_eq!(k, vec![
+            TokenKind::LParen, TokenKind::RParen,
+            TokenKind::LBracket, TokenKind::RBracket,
+            TokenKind::LBrace, TokenKind::RBrace,
+            TokenKind::Comma, TokenKind::Semicolon, TokenKind::Colon,
+            TokenKind::Eof,
+        ]);
+    }
+
+    #[test]
+    fn dot_variants() {
+        let k = kinds(". .. ... ..=");
+        assert_eq!(k, vec![
+            TokenKind::Dot,
+            TokenKind::DotDot,
+            TokenKind::DotDotDot,
+            TokenKind::DotDotEq,
+            TokenKind::Eof,
+        ]);
+    }
+
+    #[test]
+    fn arrow_variants() {
+        let k = kinds("-> =>");
+        assert_eq!(k, vec![TokenKind::Arrow, TokenKind::FatArrow, TokenKind::Eof]);
+    }
+
+    #[test]
+    fn comparison_operators() {
+        let k = kinds("== != < <= > >= << >>");
+        assert_eq!(k, vec![
+            TokenKind::EqEq, TokenKind::BangEq,
+            TokenKind::Lt, TokenKind::LtEq,
+            TokenKind::Gt, TokenKind::GtEq,
+            TokenKind::LtLt, TokenKind::GtGt,
+            TokenKind::Eof,
+        ]);
+    }
+
+    #[test]
+    fn compound_assignment() {
+        let k = kinds("+= -= *= /= %= &= |= ^= <<= >>=");
+        assert_eq!(k, vec![
+            TokenKind::PlusEq, TokenKind::MinusEq,
+            TokenKind::StarEq, TokenKind::SlashEq, TokenKind::PercentEq,
+            TokenKind::AmpEq, TokenKind::PipeEq, TokenKind::CaretEq,
+            TokenKind::LtLtEq, TokenKind::GtGtEq,
+            TokenKind::Eof,
+        ]);
+    }
+
+    #[test]
+    fn logical_operators() {
+        let k = kinds("&& || & |");
+        assert_eq!(k, vec![
+            TokenKind::AmpAmp, TokenKind::PipePipe,
+            TokenKind::Amp, TokenKind::Pipe,
+            TokenKind::Eof,
+        ]);
+    }
 }
