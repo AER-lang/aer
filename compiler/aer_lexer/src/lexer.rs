@@ -143,3 +143,55 @@ fn keyword(s: &str) -> Option<TokenKind> {
         _ => return None,
     })
 }
+
+// ── Lexer ─────────────────────────────────────────────────────────────────────
+
+/// The main ÆR lexer
+///
+/// Call [Lexer::tokenize] to lex an entire source file at once, or use
+/// [Lexer::next_token] for on-demand streaming
+pub struct Lexer<'src> {
+    cursor: Cursor<'src>,
+    errors: Vec<LexError>,
+}
+
+impl<'src> Lexer<'src> {
+    /// Create a new lexer from a source string
+    pub fn new(src: &'src str) -> Self {
+        Self {
+            cursor: Cursor::new(src),
+            errors: Vec::new(),
+        }
+    }
+
+    /// Lex the entire source and return all tokens (including the final Eof
+    /// sentinel) plus any accumulated diagnostics
+    pub fn tokenize(mut self) -> (Vec<Token>, Vec<LexError>) {
+        let mut tokens = Vec::new();
+        loop {
+            let tok = self.next_token();
+            let is_eof = tok.is_eof();
+            tokens.push(tok);
+            if is_eof {
+                break;
+            }
+        }
+        (tokens, self.errors)
+    }
+
+    /// Lex the next token, skipping whitespace and comments
+    pub fn next_token(&mut self) -> Token {
+        self.skip_trivia();
+
+        if self.cursor.is_eof() {
+            let pos = self.cursor.pos32();
+            return Token::new(TokenKind::Eof, Span::new(pos, pos));
+        }
+
+        let start = self.cursor.pos32();
+        let ch = self.cursor.advance();
+        let kind = self.lex_token(ch, start);
+        let end = self.cursor.pos32();
+        Token::new(kind, Span::new(start, end))
+    }
+}
