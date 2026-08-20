@@ -79,3 +79,67 @@ impl<'src> Cursor<'src> {
         self.pos as u32
     }
 }
+
+// ── Keyword table ─────────────────────────────────────────────────────────────
+
+fn keyword(s: &str) -> Option<TokenKind> {
+    Some(match s {
+        "async"    => TokenKind::KwAsync,
+        "await"    => TokenKind::KwAwait,
+        "break"    => TokenKind::KwBreak,
+        "comptime" => TokenKind::KwComptime,
+        "const"    => TokenKind::KwConst,
+        "continue" => TokenKind::KwContinue,
+        "defer"    => TokenKind::KwDefer,
+        "dyn"      => TokenKind::KwDyn,
+        "else"     => TokenKind::KwElse,
+        "enum"     => TokenKind::KwEnum,
+        "extern"   => TokenKind::KwExtern,
+        "false"    => TokenKind::KwFalse,
+        "fn"       => TokenKind::KwFn,
+        "for"      => TokenKind::KwFor,
+        "if"       => TokenKind::KwIf,
+        "impl"     => TokenKind::KwImpl,
+        "in"       => TokenKind::KwIn,
+        "let"      => TokenKind::KwLet,
+        "loop"     => TokenKind::KwLoop,
+        "match"    => TokenKind::KwMatch,
+        "mod"      => TokenKind::KwMod,
+        "move"     => TokenKind::KwMove,
+        "mut"      => TokenKind::KwMut,
+        "null"     => TokenKind::KwNull,
+        "pub"      => TokenKind::KwPub,
+        "return"   => TokenKind::KwReturn,
+        "self"     => TokenKind::KwSelf,
+        "Self"     => TokenKind::KwSelfType,
+        "struct"   => TokenKind::KwStruct,
+        "trait"    => TokenKind::KwTrait,
+        "true"     => TokenKind::KwTrue,
+        "type"     => TokenKind::KwType,
+        "unsafe"   => TokenKind::KwUnsafe,
+        "use"      => TokenKind::KwUse,
+        "where"    => TokenKind::KwWhere,
+        "while"    => TokenKind::KwWhile,
+
+        "bool"     => TokenKind::KwBool,
+        "i8"       => TokenKind::KwI8,
+        "i16"      => TokenKind::KwI16,
+        "i32"      => TokenKind::KwI32,
+        "i64"      => TokenKind::KwI64,
+        "i128"     => TokenKind::KwI128,
+        "u8"       => TokenKind::KwU8,
+        "u16"      => TokenKind::KwU16,
+        "u32"      => TokenKind::KwU32,
+        "u64"      => TokenKind::KwU64,
+        "u128"     => TokenKind::KwU128,
+        "isize"    => TokenKind::KwIsize,
+        "usize"    => TokenKind::KwUsize,
+        "f32"      => TokenKind::KwF32,
+        "f64"      => TokenKind::KwF64,
+        "str"      => TokenKind::KwStr,
+        "void"     => TokenKind::KwVoid,
+        "noreturn" => TokenKind::KwNoreturn,
+
+        _ => return None,
+    })
+}
