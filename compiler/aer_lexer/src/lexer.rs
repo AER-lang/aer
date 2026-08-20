@@ -64,4 +64,18 @@ impl<'src> Cursor<'src> {
             false
         }
     }
+
+    /// Advance while pred holds
+    #[inline]
+    fn eat_while(&mut self, mut pred: impl FnMut(char) -> bool) {
+        while !self.is_eof() && pred(self.peek()) {
+            self.advance();
+        }
+    }
+
+    /// Current position as u32 (safe: source files must be < 4 GB)
+    #[inline]
+    fn pos32(&self) -> u32 {
+        self.pos as u32
+    }
 }
