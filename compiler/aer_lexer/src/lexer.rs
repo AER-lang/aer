@@ -239,4 +239,149 @@ impl<'src> Lexer<'src> {
         }
     }
 
+    // ── Token dispatch ────────────────────────────────────────────────────────
+
+    fn lex_token(&mut self, ch: char, start: u32) -> TokenKind {
+        match ch {
+            // Grouping
+            '(' => TokenKind::LParen,
+            ')' => TokenKind::RParen,
+            '[' => TokenKind::LBracket,
+            ']' => TokenKind::RBracket,
+            '{' => TokenKind::LBrace,
+            '}' => TokenKind::RBrace,
+
+            // Single-char or disambiguated punctuation
+            ',' => TokenKind::Comma,
+            ';' => TokenKind::Semicolon,
+            '~' => TokenKind::Tilde,
+            '@' => TokenKind::At,
+            '#' => TokenKind::Hash,
+
+            // Colon / ::
+            ':' => {
+                if self.cursor.eat(':') { TokenKind::ColonColon }
+                else { TokenKind::Colon }
+            }
+
+            // Dot / .. / ... / ..=
+            '.' => {
+                if self.cursor.eat('.') {
+                    if self.cursor.eat('.') { TokenKind::DotDotDot }
+                    else if self.cursor.eat('=') { TokenKind::DotDotEq }
+                    else { TokenKind::DotDot }
+                } else {
+                    // Could be the start of a float like .5 — not supported in
+                    // ÆR (floats must have a digit before the dot). Plain dot
+                    TokenKind::Dot
+                }
+            }
+
+            // Arrow / minus / -=
+            '-' => {
+                if self.cursor.eat('>') { TokenKind::Arrow }
+                else if self.cursor.eat('=') { TokenKind::MinusEq }
+                else { TokenKind::Minus }
+            }
+
+            // Fat arrow / ==/ =
+            '=' => {
+                if self.cursor.eat('>') { TokenKind::FatArrow }
+                else if self.cursor.eat('=') { TokenKind::EqEq }
+                else { TokenKind::Eq }
+            }
+
+            // ! / !=
+            '!' => {
+                if self.cursor.eat('=') { TokenKind::BangEq }
+                else { TokenKind::Bang }
+            }
+
+            // < / <= / << / <<=
+            '<' => {
+                if self.cursor.eat('<') {
+                    if self.cursor.eat('=') { TokenKind::LtLtEq }
+                    else { TokenKind::LtLt }
+                } else if self.cursor.eat('=') { TokenKind::LtEq }
+                else { TokenKind::Lt }
+            }
+
+            // > / >= / >> / >>=
+            '>' => {
+                if self.cursor.eat('>') {
+                    if self.cursor.eat('=') { TokenKind::GtGtEq }
+                    else { TokenKind::GtGt }
+                } else if self.cursor.eat('=') { TokenKind::GtEq }
+                else { TokenKind::Gt }
+            }
+
+            // + / +=
+            '+' => {
+                if self.cursor.eat('=') { TokenKind::PlusEq }
+                else { TokenKind::Plus }
+            }
+
+            // * / *=
+            '*' => {
+                if self.cursor.eat('=') { TokenKind::StarEq }
+                else { TokenKind::Star }
+            }
+
+            // / / /=  (comments already consumed in skip_trivia)
+            '/' => {
+                if self.cursor.eat('=') { TokenKind::SlashEq }
+                else { TokenKind::Slash }
+            }
+
+            // % / %=
+            '%' => {
+                if self.cursor.eat('=') { TokenKind::PercentEq }
+                else { TokenKind::Percent }
+            }
+
+            // & / &= / &&
+            '&' => {
+                if self.cursor.eat('&') { TokenKind::AmpAmp }
+                else if self.cursor.eat('=') { TokenKind::AmpEq }
+                else { TokenKind::Amp }
+            }
+
+            // | / |= / ||
+            '|' => {
+                if self.cursor.eat('|') { TokenKind::PipePipe }
+                else if self.cursor.eat('=') { TokenKind::PipeEq }
+                else { TokenKind::Pipe }
+            }
+
+            // ^ / ^=
+            '^' => {
+                if self.cursor.eat('=') { TokenKind::CaretEq }
+                else { TokenKind::Caret }
+            }
+
+            // ? (error propagation)
+            '?' => TokenKind::Question,
+
+            // String literal
+            '"' => self.lex_string(start),
+
+            // Character literal
+            '\'' => self.lex_char(start),
+
+            // Number
+            c if c.is_ascii_digit() => self.lex_number(c, start),
+
+            // Identifier or keyword
+            c if is_ident_start(c) => self.lex_ident(c, start),
+
+            // Anything else
+            _ => {
+                self.errors.push(LexError::error(
+                    Span::new(start, self.cursor.pos32()),
+                    format!("unexpected character {:?}", ch),
+                ));
+                TokenKind::Unknown
+            }
+        }
+    }
 }
