@@ -194,4 +194,49 @@ impl<'src> Lexer<'src> {
         let end = self.cursor.pos32();
         Token::new(kind, Span::new(start, end))
     }
+
+    // ── Trivia ────────────────────────────────────────────────────────────────
+
+    /// Skip whitespace and comments (both // and /* */)
+    fn skip_trivia(&mut self) {
+        loop {
+            // Whitespace
+            self.cursor.eat_while(|c| c.is_ascii_whitespace());
+            if self.cursor.is_eof() {
+                break;
+            }
+
+            // Line comment
+            if self.cursor.peek() == '/' && self.cursor.peek2() == '/' {
+                self.cursor.eat_while(|c| c != '\n');
+                continue;
+            }
+
+            // Block comment (non-nesting, per spec)
+            if self.cursor.peek() == '/' && self.cursor.peek2() == '*' {
+                let start = self.cursor.pos32();
+                self.cursor.advance(); // /
+                self.cursor.advance(); // *
+                loop {
+                    if self.cursor.is_eof() {
+                        self.errors.push(LexError::error(
+                            Span::new(start, self.cursor.pos32()),
+                            "unterminated block comment",
+                        ));
+                        break;
+                    }
+                    if self.cursor.peek() == '*' && self.cursor.peek2() == '/' {
+                        self.cursor.advance(); // *
+                        self.cursor.advance(); // /
+                        break;
+                    }
+                    self.cursor.advance();
+                }
+                continue;
+            }
+
+            break;
+        }
+    }
+
 }
