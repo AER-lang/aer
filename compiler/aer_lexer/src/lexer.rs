@@ -388,10 +388,61 @@ impl<'src> Lexer<'src> {
     // ── Identifiers & keywords ─────────────────────────────────────────────────
 
     fn lex_ident(&mut self, first: char, start: u32) -> TokenKind {
-        let _ = first; // already consumed
+        let _ = first; // Already consumed
         self.cursor.eat_while(is_ident_continue);
         let end = self.cursor.pos32();
         let text = &self.cursor.src[start as usize..end as usize];
         keyword(text).unwrap_or(TokenKind::Ident)
+    }
+    
+    // ── Numbers ───────────────────────────────────────────────────────────────
+
+    fn lex_number(&mut self, first: char, start: u32) -> TokenKind {
+        // Detect base prefix (0x, 0b, 0o)
+        if first == '0' {
+            match self.cursor.peek() {
+                'x' | 'X' => {
+                    self.cursor.advance();
+                    return self.lex_int_radix(start, 16, "hex");
+                }
+                'b' | 'B' => {
+                    self.cursor.advance();
+                    return self.lex_int_radix(start, 2, "binary");
+                }
+                'o' | 'O' => {
+                    self.cursor.advance();
+                    return self.lex_int_radix(start, 8, "octal");
+                }
+                _ => {}
+            }
+        }
+
+        // Decimal: Consume remaining digits (with optional _ separators)
+        self.cursor.eat_while(|c| c.is_ascii_digit() || c == '_');
+
+        // Float if we see .digit or e/E
+        let is_float = (self.cursor.peek() == '.' && self.cursor.peek2().is_ascii_digit())
+            || matches!(self.cursor.peek(), 'e' | 'E');
+
+        if is_float {
+            return self.lex_float(start);
+        }
+
+        // Parse integer value (ignore _ separators)
+        let raw = &self.cursor.src[start as usize..self.cursor.pos as usize];
+        // Consume optional type suffix (i32, u64, etc.)
+        self.eat_int_suffix();
+
+        let digits: String = raw.chars().filter(|&c| c != '_').collect();
+        match u128::from_str_radix(&digits, 10) {
+            Ok(v) => TokenKind::IntLit(v),
+            Err(_) => {
+                self.errors.push(LexError::error(
+                    Span::new(start, self.cursor.pos32()),
+                    "integer literal too large",
+                ));
+                TokenKind::Unknown
+            }
+        }
     }
 }
