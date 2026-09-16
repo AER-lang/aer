@@ -384,4 +384,14 @@ impl<'src> Lexer<'src> {
             }
         }
     }
+
+    // ── Identifiers & keywords ─────────────────────────────────────────────────
+
+    fn lex_ident(&mut self, first: char, start: u32) -> TokenKind {
+        let _ = first; // already consumed
+        self.cursor.eat_while(is_ident_continue);
+        let end = self.cursor.pos32();
+        let text = &self.cursor.src[start as usize..end as usize];
+        keyword(text).unwrap_or(TokenKind::Ident)
+    }
 }
