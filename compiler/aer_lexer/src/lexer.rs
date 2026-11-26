@@ -445,4 +445,33 @@ impl<'src> Lexer<'src> {
             }
         }
     }
+
+    fn lex_int_radix(&mut self, start: u32, radix: u32, name: &str) -> TokenKind {
+        let digits_start = self.cursor.pos;
+        self.cursor.eat_while(|c| c.is_ascii_alphanumeric() || c == '_');
+        let digits_end = self.cursor.pos;
+
+        if digits_start == digits_end {
+            self.errors.push(LexError::error(
+                Span::new(start, self.cursor.pos32()),
+                format!("empty {} literal", name),
+            ));
+            return TokenKind::Unknown;
+        }
+
+        self.eat_int_suffix();
+
+        let raw = &self.cursor.src[digits_start..digits_end];
+        let digits: String = raw.chars().filter(|&c| c != '_').collect();
+        match u128::from_str_radix(&digits, radix) {
+            Ok(v) => TokenKind::IntLit(v),
+            Err(_) => {
+                self.errors.push(LexError::error(
+                    Span::new(start, self.cursor.pos32()),
+                    format!("invalid {} literal", name),
+                ));
+                TokenKind::Unknown
+            }
+        }
+    }
 }
