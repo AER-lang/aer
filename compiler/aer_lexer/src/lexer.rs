@@ -474,4 +474,35 @@ impl<'src> Lexer<'src> {
             }
         }
     }
+    
+    fn lex_float(&mut self, start: u32) -> TokenKind {
+        // Consume fractional part
+        if self.cursor.peek() == '.' {
+            self.cursor.advance(); // Consume .
+            self.cursor.eat_while(|c| c.is_ascii_digit() || c == '_');
+        }
+        // Consume exponent
+        if matches!(self.cursor.peek(), 'e' | 'E') {
+            self.cursor.advance();
+            let _ = self.cursor.eat('+') || self.cursor.eat('-');
+            self.cursor.eat_while(|c| c.is_ascii_digit() || c == '_');
+        }
+        // Optional float suffix (f32, f64)
+        self.eat_float_suffix();
+
+        let raw = &self.cursor.src[start as usize..self.cursor.pos as usize];
+        let clean: String = raw.chars().filter(|&c| c != '_').collect();
+        // Strip suffix before parsing
+        let numeric = clean.trim_end_matches(|c: char| c.is_ascii_alphabetic());
+        match numeric.parse::<f64>() {
+            Ok(v) => TokenKind::FloatLit(v),
+            Err(_) => {
+                self.errors.push(LexError::error(
+                    Span::new(start, self.cursor.pos32()),
+                    "invalid float literal",
+                ));
+                TokenKind::Unknown
+            }
+        }
+    }
 }
